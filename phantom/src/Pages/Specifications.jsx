@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useOrders } from '../context/OrderContext';
 import SpecificationModal from '../Components/SpecificationModal';
-import '../styles/specifications.css'; // Assuming you have a CSS file for styling
+import '../styles/Specifications.css'; // Assuming you have a CSS file for styling
 
 function Specifications() {
     const { specifications, fetchSpecifications, addSpecification, updateSpecificationById, deleteSpecificationById } = useOrders();
