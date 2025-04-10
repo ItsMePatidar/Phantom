@@ -1,38 +1,49 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrders } from '../context/OrderContext';
-import logo from '../Components/logo.png'; // Add this import
 import '../Styles/home.css';
 
 function Home() {
     const navigate = useNavigate();
-    const { orderHistory, dealerList, setCurrentDealer } = useOrders();
-    const [userType, setUserType] = useState(dealerList[0].name);
+    const { orders, dealers, currentDealer, setCurrentDealer, loading, isAdmin, fetchOrders } = useOrders();
 
-    // Filter orders based on selected dealer
-    const filteredOrders = orderHistory.filter(order => {
-        if (userType === 'Aakash Patidar') {
-            return true; // Admin sees all orders
+    useEffect(() => {
+        if (currentDealer) {
+            console.log('Fetching orders for dealer:', currentDealer);
+            fetchOrders();
         }
-        return order.dealer?.name === userType;
-    });
+    }, [currentDealer]);
 
-    // Update navigation handlers to include dealer info
+    if (loading) {
+        return <div>Loading orders...</div>;
+    }
+
+    if (!orders || orders.length === 0) {
+        console.log('orders ', orders);
+        return (
+            <div className="home">
+                <div className="header-container">
+                    <h1 className="order-title">Order History</h1>
+                    <button className="place-order-btn" onClick={() => navigate('/place-order')}>
+                        Place New Order
+                    </button>
+                </div>
+                <p>No orders found.</p>
+            </div>
+        );
+    }
+
     const handlePlaceOrder = () => {
-        const dealer = dealerList.find(d => d.name === userType);
-        setCurrentDealer(dealer);
         navigate('/place-order');
     };
 
     const handleOrderClick = (order) => {
-        const dealer = dealerList.find(d => d.name === userType);
-        setCurrentDealer(dealer);
-        if (userType === 'Aakash Patidar') {
-            navigate('/admin-order', { state: { viewOrder: order, dealer } });
+        if (currentDealer.name === 'Aakash Patidar') {
+            navigate('/admin-order', { state: { viewOrder: order, dealer: currentDealer } });
         } else if ((isWithinOneMinute(order.date) && order.status.place == 'Waiting for Approval') || order.status.place == 'Waiting for Change') {
-            navigate('/update-order', { state: { viewOrder: order, dealer } });
+            navigate('/update-order', { state: { viewOrder: order, dealer: currentDealer } });
         } else {
-            navigate('/view-order', { state: { viewOrder: order, dealer } });
+            navigate('/view-order', { state: { viewOrder: order, dealer: currentDealer } });
         }
     };
 
@@ -55,61 +66,73 @@ function Home() {
         });
     };
 
-    // console.log('orderHistory',orderHistory);
-    
-
     return (
-        <>
-            
-            <div className="home">
-                <div className="header-container">
-                    <h1 className="order-title">Order History</h1>
+        <div className="home">
+            <div className="header-container">
+                <h1 className="order-title">Order History</h1>
+                <div className="header-actions">
+                    {isAdmin(currentDealer) && (
+                        <button 
+                            className="dashboard-btn" 
+                            onClick={() => navigate('/dashboard')}
+                        >
+                            View Dashboard
+                        </button>
+                    )}
                     <button className="place-order-btn" onClick={handlePlaceOrder}>
                         Place New Order
                     </button>
                 </div>
-                <table className="order-table">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>     
-                            {userType === 'Aakash Patidar' && <th>Dealer</th>}                   
-                            <th>Date</th>
-                            <th>Price</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredOrders.map(order => (
-                            <tr 
-                                key={order.id} 
-                                onClick={() => handleOrderClick(order)}
-                                className="order-row"
-                            >
-                                <td>{order.id}</td>
-                                {userType === 'Aakash Patidar' && (
-                                    <td>{order.dealer?.name || 'N/A'}</td>
-                                )}
-                                <td>{formatDateTime(order.date)}</td>
-                                <td>₹{order.total.toFixed(2)}</td>
-                                {
-                                    (() => {
-                                        // console.log('statuses',order.status);
-                                        
-                                        if (order.status.place != 'Accepted') {
-                                            return <td>{order.status.place}</td>
-                                        } else if (order.status.payment != 'Partial Payment Received' && order.status.payment != 'Full Payment Received') {
-                                            return <td>{order.status.payment}</td>
-                                        } else if (order.status.delivery != 'Dispatched') {
-                                            return <td>{order.status.delivery}</td>
-                                        }
-                                    })()
-                                }
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
             </div>
-        </>
+            <table className="order-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>     
+                        {currentDealer.name === dealers[0]?.name && <th>Dealer</th>}                   
+                        <th>Date</th>
+                        <th>Price</th>
+                        <th>Payment Status</th>
+                        <th>Delivery Status</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {orders.map(order => (
+                        <tr 
+                            key={order.id} 
+                            onClick={() => handleOrderClick(order)}
+                            className="order-row"
+                        >
+                            <td>{order.id}</td>
+                            {currentDealer.name === dealers[0]?.name && (
+                                <td>{order.dealer_name || 'N/A'}</td>
+                            )}
+                            <td>{formatDateTime(order.created_at)}</td>
+                            <td>₹{parseFloat(order.total_amount).toFixed(2)}</td>
+                            <td>{order.status?.payment}</td>
+                            <td>{order.status?.delivery}</td>
+                            {
+                                (() => {
+                                    try {
+                                        
+                                        if (order.status?.place != 'Accepted') {
+                                            return <td>{order.status?.place}</td>
+                                        } else if (order.status?.payment === 'Payment Pending') {
+                                            return <td>{order.status?.payment}</td>
+                                        } else if (order.status?.delivery != 'Dispatched') {
+                                            return <td>{order.status?.delivery}</td>
+                                        }
+                                    } catch (error) {
+                                        console.error('Error accessing order status:', order);
+                                        // return <td>{order.status?.place}</td>
+                                    }
+                                })()
+                            }
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
     );
 }
 

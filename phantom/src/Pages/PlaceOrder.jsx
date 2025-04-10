@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ItemModal from '../Components/ItemModal';
 import { useOrders } from '../context/OrderContext';
+import { createOrder } from '../api/api';
 import '../Styles/home.css';
 
 function PlaceOrder() {
@@ -107,28 +108,33 @@ function PlaceOrder() {
         }, 0);
     };
 
-    const handlePlaceOrder = () => {
-        const orderSummary = {
-            id: Date.now(),
-            items: placeOrderList,
-            total: calculateTotal(),
-            date: new Date().toISOString(),
-            delivery: {
-                type: deliveryType,
-                address: deliveryType !== 'self' ? address : null
-            },
-            status: {
-                place: 'Waiting for Approval',
-                payment: '',
-                delivery: '',
-                final: ''
-            },
-            dealer: currentDealer // Add dealer info to order
-        };
-        
-        addOrder(orderSummary);
-        alert('Order placed successfully!');
-        navigate('/order-history');
+    const handlePlaceOrder = async () => {
+        try {
+            const orderData = {
+                dealerId: currentDealer.id,
+                orderNumber: `ORD-${Date.now()}`,
+                totalAmount: calculateTotal(),
+                isCashPayment: false, // You might want to add a payment method selector
+                items: placeOrderList,
+                shippingAddress: {
+                    type: deliveryType,
+                    address: deliveryType !== 'self' ? address : currentDealer.address
+                },
+                paymentDetails: {
+                    subTotal: calculateSubTotal(),
+                    gst: calculateGSTByRate(),
+                    total: calculateTotal()
+                }
+            };
+
+            const newOrder = await createOrder(orderData);
+            console.log('Order created successfully:', newOrder);
+            alert('Order placed successfully!');
+            navigate('/order-history');
+        } catch (error) {
+            console.error('Failed to create order:', error);
+            alert('Failed to place order. Please try again.');
+        }
     };
 
     return (

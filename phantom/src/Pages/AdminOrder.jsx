@@ -8,43 +8,48 @@ function AdminOrder() {
     const [placeOrderList, setPlaceOrderList] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState();
-    const { addOrder } = useOrders();
+    const { updateOrderById } = useOrders();
     const navigate = useNavigate();
     const location = useLocation();
     const originalOrder = location.state?.viewOrder;
     const { dealer } = location.state;
-    const [deliveryType, setDeliveryType] = useState('self');
-    const [address, setAddress] = useState('');
+    const [deliveryType, setDeliveryType] = useState(originalOrder.shipping_address?.type);
+    const [address, setAddress] = useState(originalOrder.shipping_address?.address);
     const [requiredAmount, setRequiredAmount] = useState('');
     const [transactionAmount, setTransactionAmount] = useState('');
     const [transactionNote, setTransactionNote] = useState('');
-    const [transactions, setTransactions] = useState(originalOrder?.payments || []);
+    const [transactions, setTransactions] = useState(originalOrder.payment_details?.payments || []);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [paymentDetails, setPaymentDetails] = useState({
         method: '',
         amount: '',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        notes: '' // Add notes field
     });
     const [editingTransaction, setEditingTransaction] = useState(null);
-    const [productionStatus, setProductionStatus] = useState(originalOrder?.status?.production || 'Under Process');
-    const [isCashPayment, setIsCashPayment] = useState(originalOrder?.isCashPayment || false);
+    const [productionStatus, setProductionStatus] = useState(originalOrder?.status?.delivery || '');
+    const [isCashPayment, setIsCashPayment] = useState(originalOrder?.is_cash_payment || false);
     const [orderStatus, setOrderStatus] = useState(originalOrder?.status?.place || 'Waiting for Approval');
+    const [startProduction, setStartProduction] = useState(originalOrder?.status?.startProduction || false);
+    const [startCredit, setStartCredit] = useState(originalOrder?.status?.startCredit || false);
 
     useEffect(() => {
         if (originalOrder) {
+            console.log('originalOrder', originalOrder);
+            
             setPlaceOrderList(originalOrder.items);
-            setDeliveryType(originalOrder.delivery?.type || 'self');
-            setAddress(originalOrder.delivery?.address || dealer?.address || '');
-            setRequiredAmount(originalOrder.requiredAmount || String(originalOrder.total));
-            setTransactions(originalOrder.payments || []);
-            setIsCashPayment(originalOrder.isCashPayment || false);
+            setDeliveryType(originalOrder.shipping_address?.type || 'self');
+            setAddress(originalOrder.shipping_address?.address || dealer?.address || '');
+            setRequiredAmount(originalOrder.payment_details.requiredAmount || String(originalOrder.total));
+            setTransactions(originalOrder.payment_details.payments || []);
+            setIsCashPayment(originalOrder.is_cash_payment || false);
         } else if (dealer?.address) {
             setAddress(dealer.address);
         }
     }, [originalOrder, dealer]);
 
     useEffect(() => {
-        if (!originalOrder?.requiredAmount) {
+        if (!originalOrder.payment_details?.requiredAmount) {
             setRequiredAmount(String(calculateTotal()));
         }
     }, [placeOrderList, isCashPayment]);
@@ -117,29 +122,36 @@ function AdminOrder() {
         }, 0);
     };
 
-    const handleUpdateOrder = () => {
-        const updatedOrder = {
-            ...originalOrder,
-            items: placeOrderList,
-            total: calculateTotal(),
-            delivery: {
-                type: deliveryType,
-                address: deliveryType !== 'self' ? address : null
-            },
-            payments: transactions,
-            requiredAmount: parseFloat(requiredAmount),
-            isCashPayment: isCashPayment,
-            status: {
-                ...originalOrder.status,
-                place: orderStatus,
-                payment: calculatePaymentStatus(transactions, requiredAmount),
-                delivery: productionStatus
-            }
-        };
-        
-        addOrder(updatedOrder);
-        alert('Order updated successfully!');
-        navigate('/order-history');
+    const handleUpdateOrder = async () => {
+        try {
+            const updatedOrderData = {
+                totalAmount: calculateTotal(),
+                isCashPayment: isCashPayment,
+                items: placeOrderList,
+                shippingAddress: {
+                    type: deliveryType,
+                    address: deliveryType !== 'self' ? address : null
+                },
+                status: {
+                    place: orderStatus,
+                    payment: calculatePaymentStatus(transactions, requiredAmount),
+                    delivery: productionStatus,
+                    startProduction: startProduction,
+                    startCredit: startCredit
+                },
+                paymentDetails: {
+                    requiredAmount: parseFloat(requiredAmount),
+                    payments: transactions
+                }
+            };
+            
+            await updateOrderById(originalOrder.id, updatedOrderData);
+            alert('Order updated successfully!');
+            navigate('/order-history');
+        } catch (error) {
+            console.error('Failed to update order:', error);
+            alert('Failed to update order. Please try again.');
+        }
     };
 
     const handlePaymentSubmit = (e) => {
@@ -153,7 +165,8 @@ function AdminOrder() {
                         ...t,
                         method: paymentDetails.method,
                         amount: parseFloat(paymentDetails.amount),
-                        date: new Date(paymentDetails.date).toISOString()
+                        date: new Date(paymentDetails.date).toISOString(),
+                        notes: paymentDetails.notes // Include notes in updated transaction
                     }
                     : t
             );
@@ -162,29 +175,19 @@ function AdminOrder() {
                 id: Date.now(),
                 amount: parseFloat(paymentDetails.amount),
                 date: new Date(paymentDetails.date).toISOString(),
-                method: paymentDetails.method
+                method: paymentDetails.method,
+                notes: paymentDetails.notes // Include notes in new transaction
             }];
         }
 
         setTransactions(updatedTransactions);
 
-        // Update order with new payment status
-        const updatedOrder = {
-            ...originalOrder,
-            payments: updatedTransactions,
-            requiredAmount: parseFloat(requiredAmount),
-            status: {
-                ...originalOrder.status,
-                payment: calculatePaymentStatus(updatedTransactions, requiredAmount)
-            }
-        };
-        addOrder(updatedOrder);
-
         // Reset form and close modal
         setPaymentDetails({
             method: '',
             amount: '',
-            date: new Date().toISOString().split('T')[0]
+            date: new Date().toISOString().split('T')[0],
+            notes: '' // Reset notes field
         });
         setEditingTransaction(null);
         setIsPaymentModalOpen(false);
@@ -195,7 +198,8 @@ function AdminOrder() {
         setPaymentDetails({
             method: transaction.method,
             amount: transaction.amount,
-            date: new Date(transaction.date).toISOString().split('T')[0]
+            date: new Date(transaction.date).toISOString().split('T')[0],
+            notes: transaction.notes || '' // Populate notes field
         });
         setIsPaymentModalOpen(true);
     };
@@ -204,27 +208,30 @@ function AdminOrder() {
         if (window.confirm('Are you sure you want to delete this transaction?')) {
             const updatedTransactions = transactions.filter(t => t.id !== transactionId);
             setTransactions(updatedTransactions);
-            
-            // Update order with new payment status
-            const updatedOrder = {
-                ...originalOrder,
-                payments: updatedTransactions,
-                requiredAmount: parseFloat(requiredAmount),
-                status: {
-                    ...originalOrder.status,
-                    payment: calculatePaymentStatus(updatedTransactions, requiredAmount)
-                }
-            };
-            addOrder(updatedOrder);
         }
     };
 
     const calculatePaymentStatus = (payments, required) => {
         const totalPaid = payments.reduce((sum, txn) => sum + parseFloat(txn.amount), 0);
         const reqAmount = parseFloat(required) || calculateTotal();
+
+        console.log('Total Paid:', totalPaid);
+        console.log('Required Amount:', reqAmount);
+        console.log('Total Amount:', calculateTotal());
+        console.log('Start Production:', startProduction);
+        console.log('Start Credit:', startCredit);
         
-        if (totalPaid >= calculateTotal()) return 'Full Payment Received';
-        if (totalPaid >= required) return 'Partial Payment Received';
+        
+        if (totalPaid >= calculateTotal()) return 'Payment Received';
+        if (totalPaid < reqAmount && reqAmount < calculateTotal() && startProduction === true && startCredit === false) return 'Advance Due for Dispatch';
+        if (totalPaid < reqAmount && reqAmount < calculateTotal() && startProduction === false && startCredit === false) return 'Advance Due for Production';
+        if ((startProduction === true || totalPaid >= reqAmount) && startCredit === false) return 'Payment Due for Dispatch';
+        if (startProduction === false && startCredit === false) return 'Payment Due for Production';
+        if (startProduction === true && startCredit === true) return 'Payment Due';
+
+
+
+        
         return 'Payment Pending';
     };
 
@@ -234,28 +241,10 @@ function AdminOrder() {
 
     const handleStatusChange = (newStatus) => {
         setProductionStatus(newStatus);
-
-        // Update order with new status only
-        const updatedOrder = {
-            ...originalOrder,
-            status: {
-                ...originalOrder.status,
-                delivery: newStatus
-            }
-        };
-        addOrder(updatedOrder);
     };
 
     const handleStatusClick = (status) => {
         setOrderStatus(status);
-        const updatedOrder = {
-            ...originalOrder,
-            status: {
-                ...originalOrder.status,
-                place: status
-            }
-        };
-        addOrder(updatedOrder);
     };
 
     return (
@@ -436,15 +425,37 @@ function AdminOrder() {
                         <div className="payment-section">
                             <h2>Payment Details</h2>
                             <div className="payment-form">
-                                <div className="form-group">
-                                    <label>Required Amount (₹):</label>
-                                    <input
-                                        type="number"
-                                        value={requiredAmount}
-                                        onChange={(e) => setRequiredAmount(e.target.value)}
-                                        placeholder="Enter required amount"
-                                        className="payment-input"
-                                    />
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Required Amount (₹):</label>
+                                        <input
+                                            type="number"
+                                            value={requiredAmount}
+                                            onChange={(e) => setRequiredAmount(e.target.value)}
+                                            placeholder="Enter required amount"
+                                            className="payment-input"
+                                        />
+                                    </div>
+                                    <div className="form-group production-check">
+                                        <label className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={startProduction}
+                                                onChange={(e) => setStartProduction(e.target.checked)}
+                                            />
+                                            Start Production
+                                        </label>
+                                    </div>
+                                    <div className="form-group production-check">
+                                        <label className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={startCredit}
+                                                onChange={(e) => setStartCredit(e.target.checked)}
+                                            />
+                                            Credit
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
@@ -466,6 +477,7 @@ function AdminOrder() {
                                             <span>{new Date(txn.date).toLocaleDateString()}</span>
                                             <span>{txn.method}</span>
                                             <span>₹{txn.amount}</span>
+                                            {txn.notes && <span>Notes: {txn.notes}</span>} {/* Display notes if available */}
                                             <div className="transaction-actions">
                                                 <button 
                                                     className="edit-btn small"
@@ -536,6 +548,19 @@ function AdminOrder() {
                                                 required
                                             />
                                         </div>
+                                        <div className="form-group">
+                                            <label>Notes:</label>
+                                            <textarea
+                                                value={paymentDetails.notes}
+                                                onChange={(e) => setPaymentDetails({
+                                                    ...paymentDetails,
+                                                    notes: e.target.value
+                                                })}
+                                                placeholder="Add payment notes (optional)"
+                                                rows="3"
+                                                className="payment-notes"
+                                            />
+                                        </div>
                                         <div className="modal-actions">
                                             <button type="button" onClick={() => setIsPaymentModalOpen(false)}>
                                                 Cancel
@@ -549,7 +574,7 @@ function AdminOrder() {
                             </div>
                         )}
 
-                        <div className="production-section">
+                        {orderStatus === 'Accepted' && (startCredit === true || calculateTotalPaid() >= requiredAmount) && <div className="production-section">
                             <h2>Production Status</h2>
                             <div className="status-options">
                                 <label className="status-option">
@@ -572,7 +597,7 @@ function AdminOrder() {
                                     />
                                     Ready to Dispatch
                                 </label>
-                                <label className="status-option">
+                                {calculateTotalPaid() >= calculateSubTotal() && <label className="status-option">
                                     <input
                                         type="radio"
                                         name="production_status"
@@ -581,8 +606,8 @@ function AdminOrder() {
                                         onChange={(e) => handleStatusChange(e.target.value)}
                                     />
                                     Dispatched
-                                </label>
-                                <label className="status-option">
+                                </label>}
+                                {/* <label className="status-option">
                                     <input
                                         type="radio"
                                         name="production_status"
@@ -591,9 +616,9 @@ function AdminOrder() {
                                         onChange={(e) => handleStatusChange(e.target.value)}
                                     />
                                     Delivered
-                                </label>
+                                </label> */}
                             </div>
-                        </div>
+                        </div>}
 
                         <div className="place-order-container">
                             <button 

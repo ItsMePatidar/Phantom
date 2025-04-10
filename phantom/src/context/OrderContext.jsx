@@ -1,52 +1,246 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { 
+    getOrders, 
+    getOrdersByDealer, 
+    createOrder, 
+    updateOrder, 
+    deleteOrder, 
+    getDealers, 
+    searchDealer as searchDealerApi,
+    getSpecifications,
+    createSpecification,
+    updateSpecification,
+    deleteSpecification
+} from '../api/api';
 
 const OrderContext = createContext();
 
 export function OrderProvider({ children }) {
-    const [orderHistory, setOrderHistory] = useState([]);
-    const [currentDealer, setCurrentDealer] = useState({
-        id: 1, 
-        name: 'Aakash Patidar', 
-        address: 'Azad Chowk Bonli', 
-        phone: '9540293140', 
-        email: ''
-    });
+    // Global state variables
+    const [orders, setOrders] = useState([]);     // Stores all orders
+    const [dealers, setDealers] = useState([]); // Stores all dealers
+    const [loading, setLoading] = useState(false); // Loading state
+    const [currentDealer, setCurrentDealer] = useState(null); // Currently selected dealer
+    const [specifications, setSpecifications] = useState([]); // Stores all specifications
 
-    const dealerList = [
-        {id: 1, name: 'Aakash Patidar', address: 'Azad Chowk Bonli', phone: '9540293140', email: ''},
-        {id: 2, name: 'Priyansh Patidar', address: 'Pune', phone: '9001551209', email: 'p.patidar@gmail.com'},
-        {id: 3, name: 'Kunj Bihari Patidar', address: 'Tehsil Road Azad Chowk Bonli', phone: '9785364368', email: ''}
-    ];
+    useEffect(() => {
+        // Store dealer selection in localStorage when it changes
+        if (currentDealer) {
+            localStorage.setItem('currentDealer', JSON.stringify(currentDealer));
+        }
+    }, [currentDealer]);
 
-    const addOrder = (order) => {
-        const existingOrderIndex = orderHistory.findIndex(o => o.id === order.id);
-        
-        if (existingOrderIndex !== -1) {
-            // When updating an order, preserve the original dealer
-            const updatedOrder = {
-                ...order,
-                dealer: orderHistory[existingOrderIndex].dealer // Keep original dealer
-            };
-            setOrderHistory(orderHistory.map(o => 
-                o.id === order.id ? updatedOrder : o
+    useEffect(() => {
+        // Load stored dealer on initial mount
+        const storedDealer = localStorage.getItem('currentDealer');
+        if (storedDealer) {
+            setCurrentDealer(JSON.parse(storedDealer));
+        }
+    }, []);
+
+    const isAdmin = (dealer) => {
+        return dealer?.role === 'admin';
+    };
+
+    const fetchDealers = async () => {
+        try {
+            const response = await getDealers();
+            if (response && response) {
+                setDealers(response);
+            }
+        } catch (error) {
+            console.error('Failed to fetch dealers:', error);
+            setDealers([]);
+        }
+    };
+
+    const fetchOrders = async () => {
+        if (!currentDealer) return;
+
+        try {
+            setLoading(true);
+            let ordersData;
+
+            console.log('Fetching orders for role:', currentDealer.role);
+
+            if (currentDealer.role === 'admin') {
+                ordersData = await getOrders();
+            } else {
+                ordersData = await getOrdersByDealer(currentDealer.id);
+            }
+
+            console.log('Received orders data:', ordersData);
+
+            if (ordersData && Array.isArray(ordersData)) {
+                setOrders(ordersData);
+            } else {
+                console.warn('Invalid orders data received:', ordersData);
+                setOrders([]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch orders:", error);
+            setOrders([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const addOrder = async (orderData) => {
+        try {
+            const newOrder = await createOrder(orderData);
+            setOrders(prev => [newOrder, ...prev]);
+            return newOrder;
+        } catch (error) {
+            console.error("Failed to add order:", error);
+            throw error;
+        }
+    };
+
+    const updateOrderById = async (orderId, updateData) => {
+        try {
+            setLoading(true);
+            const updatedOrder = await updateOrder(orderId, updateData);
+            setOrders(prev => prev.map(order => 
+                order.id === orderId ? updatedOrder : order
             ));
-        } else {
-            // Only add dealer info for new orders
-            const newOrder = {
-                ...order,
-                dealer: currentDealer
+            return updatedOrder;
+        } catch (error) {
+            console.error("Failed to update order:", error);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const deleteOrderById = async (orderId) => {
+        try {
+            await deleteOrder(orderId);
+            setOrders(prev => prev.filter(order => order.id !== orderId));
+        } catch (error) {
+            console.error("Failed to delete order:", error);
+            throw error;
+        }
+    };
+
+    const searchDealer = async (dealerName, password) => {
+        try {
+            setLoading(true);
+            const dealer = await searchDealerApi(dealerName, password);
+            return dealer;
+        } catch (error) {
+            console.error("Failed to search dealer:", error);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchSpecifications = async () => {
+        try {
+            const result = await getSpecifications();
+            if (result) {
+                setSpecifications(result);
+            }
+        } catch (error) {
+            console.error('Failed to fetch specifications:', error);
+            setSpecifications([]);
+        }
+    };
+
+    const addSpecification = async (specData) => {
+        try {
+            if (!specData) {
+                throw new Error('Specification data is required');
+            }
+            
+            // Ensure all required fields are present
+            const validatedData = {
+                type_name: specData.type_name,
+                fabric_selection: specData.fabric_selection || 'dropdown',
+                fabric_count: parseInt(specData.fabric_count) || 1,
+                fabric_options: Array.isArray(specData.fabric_options) ? specData.fabric_options : [],
+                profiles: Array.isArray(specData.profiles) ? specData.profiles : [],
+                min_fabric: specData.min_fabric || 'area',
+                min_fabric_value: parseFloat(specData.min_fabric_value) || 1,
+                tax: parseFloat(specData.tax) || 0
             };
-            setOrderHistory([...orderHistory, newOrder]);
+
+            console.log('Validated specification data:', validatedData);
+            const newSpec = await createSpecification(validatedData);
+            
+            if (!newSpec) {
+                throw new Error('Failed to create specification');
+            }
+            
+            setSpecifications(prev => [...prev, newSpec]);
+            return newSpec;
+        } catch (error) {
+            console.error('Failed to add specification:', error);
+            throw error;
+        }
+    };
+
+    const updateSpecificationById = async (id, specData) => {
+        try {
+            if (!specData) {
+                throw new Error('Specification data is required');
+            }
+            
+            // Ensure all required fields are present
+            const validatedData = {
+                type_name: specData.type_name,
+                fabric_selection: specData.fabric_selection || 'dropdown',
+                fabric_count: parseInt(specData.fabric_count) || 1,
+                fabric_options: Array.isArray(specData.fabric_options) ? specData.fabric_options : [],
+                profiles: Array.isArray(specData.profiles) ? specData.profiles : [],
+                min_fabric: specData.min_fabric || 'area',
+                min_fabric_value: parseFloat(specData.min_fabric_value) || 1,
+                tax: parseFloat(specData.tax) || 0
+            };
+
+            console.log('Validated specification data:', validatedData);
+            const updatedSpec = await updateSpecification(id, validatedData);
+            setSpecifications(prev => 
+                prev.map(spec => spec.id === id ? updatedSpec : spec)
+            );
+            return updatedSpec;
+        } catch (error) {
+            console.error('Failed to update specification:', error);
+            throw error;
+        }
+    };
+
+    const deleteSpecificationById = async (id) => {
+        try {
+            await deleteSpecification(id);
+            setSpecifications(prev => 
+                prev.filter(spec => spec.id !== id)
+            );
+        } catch (error) {
+            console.error('Failed to delete specification:', error);
+            throw error;
         }
     };
 
     return (
         <OrderContext.Provider value={{ 
-            orderHistory, 
-            addOrder, 
-            dealerList,
+            orders,
+            dealers,
+            loading,
             currentDealer,
-            setCurrentDealer 
+            setCurrentDealer,
+            isAdmin,
+            addOrder,
+            updateOrderById,
+            deleteOrderById,
+            fetchOrders,
+            fetchDealers,
+            searchDealer,
+            specifications,
+            fetchSpecifications,
+            addSpecification,
+            updateSpecificationById,
+            deleteSpecificationById
         }}>
             {children}
         </OrderContext.Provider>

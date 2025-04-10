@@ -1,0 +1,112 @@
+.admin-ledger {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.admin-ledger h1 {
+    color: #333;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.ledger-table {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.ledger-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    table-layout: fixed;
+}
+
+.ledger-table th {
+    background: #f8f9fa;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.ledger-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.ledger-table th:nth-child(1),
+.ledger-table td:nth-child(1) { width: 20%; } /* Date */
+.ledger-table th:nth-child(2),
+.ledger-table td:nth-child(2) { width: 20%; } /* Dealer Name */
+.ledger-table th:nth-child(3),
+.ledger-table td:nth-child(3) { width: 15%; } /* Order Number */
+.ledger-table th:nth-child(4),
+.ledger-table td:nth-child(4) { width: 15%; } /* Debit */
+.ledger-table th:nth-child(5),
+.ledger-table td:nth-child(5) { width: 15%; } /* Credit */
+.ledger-table th:nth-child(6),
+.ledger-table td:nth-child(6) { width: 15%; } /* Note */
+
+.ledger-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.amount {
+    font-family: monospace;
+    text-align: right;
+}
+
+.debit {
+    color: #dc3545;
+}
+
+.credit {
+    color: #28a745;
+}
+
+.summary-row {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.summary-row.totals {
+    background-color: #f0f0f0;
+}
+
+.summary-row.totals td {
+    border-bottom: 2px solid #dee2e6;
+}
+
+.closing-balance {
+    text-align: center !important;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #0066cc;
+}
+
+.summary-row td {
+    border-top: 2px solid #dee2e6;
+}
+
+@media (max-width: 768px) {
+    .admin-ledger {
+        padding: 1rem;
+    }
+    
+    .ledger-table {
+        overflow-x: auto;
+    }
+    
+    .ledger-table table {
+        font-size: 0.85rem;
+    }
+    
+    .ledger-table th,
+    .ledger-table td {
+        padding: 8px 10px;
+    }
+}

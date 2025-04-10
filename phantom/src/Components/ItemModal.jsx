@@ -1,41 +1,34 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useOrders } from '../context/OrderContext';
 
 function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isEditing }) {
+    const { specifications, fetchSpecifications } = useOrders();
+
+    useEffect(() => {
+        fetchSpecifications();
+    }, []);
+
     if (!isOpen) return null;
 
-    const specification = {
-        'Honeycomb Skylight': {
-            fabric_selection: 'dropdown',
-            fabric_count: 1,
-            fabric_options: ['SL01', 'SL02', 'SL03', 'SL04', 'SL05', 'SL06', 'SL07', 'Other'],
-            profiles: ['White', 'Dark Gray', 'Customised'],
-            min_fabric: 'area',
-            min_fabric_value: 2.5,
-            tax: 12
-        },
-        'Bottom Up Blinds': {
-            fabric_selection: 'dropdown',
-            fabric_count: 1,
-            fabric_options: ['RD01', 'RD02', 'RD03', 'RD04', 'RD05', 'RD06', 'RD07', 'RD08', 'LF01', 'LF02', 'LF03', 'LF04', 'LF05', 'LF06', 'LF07', 'SH01', 'SH02', 'Other'],
-            profiles: ['White', 'Gray', 'Brown', 'Customised'],
-            min_fabric: 'length',
-            min_fabric_value: 1,
-            tax: 18
-        },
-        'Day Night Blinds': {
-            fabric_selection: 'manual',
-            fabric_count: 2,
-            profiles: ['White', 'Customised'],
-            min_fabric: 'length',
-            min_fabric_value: 1,
-        },
-    };
+    // Convert specifications array to object format for easier access
+    const specificationsMap = specifications.reduce((acc, spec) => {
+        acc[spec.type_name] = {
+            fabric_selection: spec.fabric_selection,
+            fabric_count: spec.fabric_count,
+            fabric_options: spec.fabric_options,
+            profiles: spec.profiles,
+            min_fabric: spec.min_fabric,
+            min_fabric_value: spec.min_fabric_value,
+            tax: spec.tax
+        };
+        return acc;
+    }, {});
 
     // Render fabric inputs based on selected type
     const renderFabricInputs = () => {
         if (!selectedItem.type) return null;
 
-        const itemSpec = specification[selectedItem.type];
+        const itemSpec = specificationsMap[selectedItem.type];
         if (!itemSpec) return null;
 
         return (
@@ -76,7 +69,7 @@ function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isE
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const itemSpec = specification[selectedItem.type];
+        const itemSpec = specificationsMap[selectedItem.type];
         let calculatedDimension;
         
         if (itemSpec.min_fabric === 'area') {
@@ -87,9 +80,9 @@ function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isE
 
         onSave({
             ...selectedItem,
-            id: selectedItem.id || Date.now(), // Keep existing ID when editing
-            Price: 100,
-            tax: itemSpec.tax || 0, // Get tax rate from specification
+            id: selectedItem.id || Date.now(),
+            Price: 200,
+            tax: itemSpec.tax || 0,
             calculatedDimension
         });
         onClose();
@@ -111,8 +104,10 @@ function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isE
                         <label>Type:</label>
                         <select name="type" value={selectedItem.type} onChange={handleChange} required>
                             <option value="">Select Type</option>
-                            {Object.keys(specification).map(type => (
-                                <option key={type} value={type}>{type}</option>
+                            {specifications.map(spec => (
+                                <option key={spec.type_name} value={spec.type_name}>
+                                    {spec.type_name}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -121,7 +116,7 @@ function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isE
                         <label>Profile:</label>
                         <select name="Profile" value={selectedItem.Profile} onChange={handleChange} required>
                             <option value="">Select Profile</option>
-                            {(specification[selectedItem.type]?.profiles || []).map(profile => (
+                            {(specificationsMap[selectedItem.type]?.profiles || []).map(profile => (
                                 <option key={profile} value={profile}>{profile}</option>
                             ))}
                         </select>

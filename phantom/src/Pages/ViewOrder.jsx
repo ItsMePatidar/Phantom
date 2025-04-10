@@ -97,7 +97,7 @@ function ViewOrder() {
                     <tr className="total-row grand-total">
                         <td colSpan="6"></td>
                         <td className="text-right"><strong>Total</strong></td>
-                        <td style={{textAlign:'right'}}><strong>₹{order.total.toFixed(2)}</strong></td>
+                        <td style={{textAlign:'right'}}><strong>₹{parseFloat(order.total_amount).toFixed(2)}</strong></td>
                     </tr>
                 </tbody>
             </table>
@@ -124,12 +124,14 @@ function ViewOrder() {
                     <p><strong>Payment Type:</strong> Cash Payment (No GST)</p>
                 )}
                 <div className="payment-info">
-                    <p><strong>Required Amount:</strong> ₹{order.requiredAmount || order.total}</p>
-                    {order.payments && order.payments.length > 0 && (
+                    <p><strong>Total Amount:</strong> ₹{order.total_amount}</p>
+                    <p><strong>Received Amount:</strong> ₹{order.payment_details.payments?.reduce((acc, item)=>acc + item.amount, 0)}</p>
+                    <p><strong>Due Amount:</strong> ₹{order.total_amount - order.payment_details.payments?.reduce((acc, item)=>acc + item.amount, 0)}</p>
+                    {order.payment_details.payments && order.payment_details.payments.length > 0 && (
                         <div className="payment-history">
                             <h3>Payment History</h3>
                             <div className="transaction-list">
-                                {order.payments.map(txn => (
+                                {order.payment_details.payments.map(txn => (
                                     <div key={txn.id} className="transaction-item">
                                         <span>{new Date(txn.date).toLocaleDateString()}</span>
                                         <span>{txn.method}</span>
@@ -138,13 +140,13 @@ function ViewOrder() {
                                 ))}
                             </div>
                             <div className="payment-summary">
-                                <p><strong>Total Paid:</strong> ₹{order.payments.reduce((sum, txn) => sum + txn.amount, 0)}</p>
-                                <p><strong>Status:</strong> {order.status?.payment || 'Pending'}</p>
+                                {/* <p><strong>Total Paid:</strong> ₹{order.payment_details.payments.reduce((sum, txn) => sum + txn.amount, 0)}</p> */}
+                                {/* <p><strong>Status:</strong> {order.status?.payment || 'Pending'}</p> */}
                             </div>
                         </div>
                     )}
                 </div>
-                {order.status?.payment !== 'Full Payment Received' && (
+                {order.status?.payment !== 'Payment Received' && (
                     <div className="payment-info-box">
                         <h3>Make Payment</h3>
                         <div className="payment-methods">

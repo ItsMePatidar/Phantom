@@ -1,28 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrders } from '../context/OrderContext';
+import SpecificationModal from '../Components/SpecificationModal';
+import '../styles/AdminDashboard.css';
 
-function Dashboard() {
-    const { orderHistory } = useOrders();
+function AdminDashboard() {
     const navigate = useNavigate();
-    const [paymentType, setPaymentType] = useState('all'); // 'all', 'cash', 'noncash'
+    const { orders, loading, fetchOrders, specifications, fetchSpecifications } = useOrders();
+    const [paymentType, setPaymentType] = useState('all');
+    const [isSpecModalOpen, setIsSpecModalOpen] = useState(false);
+    const [selectedSpec, setSelectedSpec] = useState(null);
+
+    // Fetch orders when component mounts
+    useEffect(() => {
+        fetchOrders();
+        fetchSpecifications();
+    }, []);
+
+    if (loading || !orders) {
+        return <div>Loading...</div>;
+    }
 
     // Filter orders based on payment type
-    const filteredOrders = orderHistory.filter(order => {
+    const filteredOrders = (orders || []).filter(order => {
+        if (!order || !order.status) return false;
         if (paymentType === 'all') return true;
-        if (paymentType === 'cash') return order.isCashPayment;
-        return !order.isCashPayment;
+        if (paymentType === 'cash') return order.is_cash_payment;
+        return !order.is_cash_payment;
     });
 
     const statusCounts = {
-        waitingApproval: filteredOrders.filter(order => order.status.place === 'Waiting for Approval').length,
-        paymentPending: filteredOrders.filter(order => order.status.payment === 'Payment Pending').length,
-        underProcess: filteredOrders.filter(order => order.status.delivery === 'Under Process').length,
-        readyToDispatch: filteredOrders.filter(order => order.status.delivery === 'Ready to Dispatch').length
+        waitingApproval: filteredOrders.filter(order => 
+            order.status?.place === 'Waiting for Approval'
+        ).length || 0,
+        waitingPayment: filteredOrders.filter(order => 
+            order.status?.place === 'Accepted' && order.status?.payment === 'Payment Pending'
+        ).length || 0,
+        pendingPayment: filteredOrders.filter(order => 
+            order.status?.place === 'Accepted' && order.status?.payment === 'Partial Payment Received'
+        ).length || 0,
+        pendingPaymentStartProd: filteredOrders.filter(order => 
+            order.status?.place === 'Accepted' && order.status?.payment === 'Partial Payment Received - For Production'
+        ).length || 0,
+        underProcess: filteredOrders.filter(order => 
+            order.status?.delivery === 'Under Process'
+        ).length || 0,
+        readyToDispatch: filteredOrders.filter(order => 
+            order.status?.delivery === 'Ready to Dispatch'
+        ).length || 0
     };
 
     const handleBoxClick = (status) => {
         navigate('/order-history', { state: { filterStatus: status, paymentType } });
+    };
+
+    const handleEditSpec = (spec) => {
+        setSelectedSpec(spec);
+        setIsSpecModalOpen(true);
     };
 
     return (
@@ -48,20 +82,53 @@ function Dashboard() {
                     <div className="count">{statusCounts.waitingApproval}</div>
                 </div>
                 <div className="status-box pending" onClick={() => handleBoxClick('Payment Pending')}>
-                    <h3>Payment Pending</h3>
-                    <div className="count">{statusCounts.paymentPending}</div>
+                    <h3>Waiting for Payment</h3>
+                    <div className="count">{statusCounts.waitingPayment}</div>
+                </div>
+                <div className="status-box pending" onClick={() => handleBoxClick('Payment Pending')}>
+                    <h3>Payment Pending - Start Prod</h3>
+                    <div className="count">{statusCounts.pendingPaymentStartProd}</div>
                 </div>
                 <div className="status-box process" onClick={() => handleBoxClick('Under Process')}>
                     <h3>Under Process</h3>
                     <div className="count">{statusCounts.underProcess}</div>
                 </div>
+                <div className="status-box pending" onClick={() => handleBoxClick('Payment Pending')}>
+                    <h3>Payment Pending</h3>
+                    <div className="count">{statusCounts.pendingPayment}</div>
+                </div>
+                
                 <div className="status-box ready" onClick={() => handleBoxClick('Ready to Dispatch')}>
                     <h3>Ready to Dispatch</h3>
                     <div className="count">{statusCounts.readyToDispatch}</div>
                 </div>
             </div>
+
+            <div className="admin-actions">
+                <button 
+                    className="manage-specs-btn"
+                    onClick={() => navigate('/specifications')}
+                >
+                    Manage Product Specifications
+                </button>
+                <button 
+                    className="manage-specs-btn"
+                    onClick={() => navigate('/admin-ledger')}
+                >
+                    Get Ledger
+                </button>
+            </div>
+
+            {isSpecModalOpen && (
+                <SpecificationModal
+                    isOpen={isSpecModalOpen}
+                    onClose={() => setIsSpecModalOpen(false)}
+                    specification={selectedSpec}
+                    onSave={selectedSpec ? updateSpecificationById : addSpecification}
+                />
+            )}
         </div>
     );
 }
 
-export default Dashboard;
+export default AdminDashboard;
