@@ -1,7 +1,7 @@
 import { useOrders } from '../context/OrderContext';
 import { useNavigate } from 'react-router-dom';
 import React, { useEffect } from 'react';
-import '../styles/AdminDashboard.css';  // We'll reuse some admin dashboard styles
+import '../Styles/AdminDashboard.css';  // We'll reuse some admin dashboard styles
 
 function DealerDashboard() {
     const { currentDealer } = useOrders();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import '../styles/SpecificationModal.css'; // Assuming you have a CSS file for styling
+import '../Styles/SpecificationModal.css'; // Assuming you have a CSS file for styling
 
 function SpecificationModal({ isOpen, onClose, specification, onSave }) {
     const [formData, setFormData] = useState({

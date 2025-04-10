@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAdminLedger } from '../api/api';
-import '../styles/AdminLedger.css';
+import '../Styles/AdminLedger.css';
 
 function AdminLedger() {
     const [ledgerList, setLedgerList] = useState([]);

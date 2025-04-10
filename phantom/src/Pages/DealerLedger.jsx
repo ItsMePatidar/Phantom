@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getDealerLedger } from '../api/api';
 import { useOrders } from '../context/OrderContext';
-import '../styles/AdminLedger.css'; // Reuse admin ledger styles
+import '../Styles/AdminLedger.css'; // Reuse admin ledger styles
 
 function DealerLedger() {
     const [ledgerList, setLedgerList] = useState([]);

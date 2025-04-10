@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrders } from '../context/OrderContext';
 import SpecificationModal from '../Components/SpecificationModal';
-import '../styles/AdminDashboard.css';
+import '../Styles/AdminDashboard.css';
 
 function AdminDashboard() {
     const navigate = useNavigate();
