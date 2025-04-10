@@ -14,9 +14,10 @@ export async function createOrder(orderData) {
             is_cash_payment,
             items,
             shipping_address,
+            customer_details,
             status,
             payment_details
-        ) VALUES ($1, $2, $3, $4, $5::jsonb[], $6::jsonb, $7::jsonb, $8::jsonb)
+        ) VALUES ($1, $2, $3, $4, $5::jsonb[], $6::jsonb, $7::jsonb, $8::jsonb, $9::jsonb)
         RETURNING *`;
 
     const values = [
@@ -26,6 +27,7 @@ export async function createOrder(orderData) {
         orderData.isCashPayment,
         orderData.items,
         orderData.shippingAddress,
+        orderData.customerDetails,
         {
             place: "Waiting for Approval",
             payment: "Payment Pending",
@@ -106,10 +108,11 @@ export async function updateOrder(orderId, updateData) {
             is_cash_payment = $2,
             items = $3::jsonb[],
             shipping_address = $4::jsonb,
-            status = $5::jsonb,
-            payment_details = $6::jsonb,
+            customer_details = $5::jsonb,
+            status = $6::jsonb,
+            payment_details = $7::jsonb,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $7
+        WHERE id = $8
         RETURNING *`;
 
     const values = [
@@ -117,6 +120,7 @@ export async function updateOrder(orderId, updateData) {
         updateData.isCashPayment,
         updateData.items,
         updateData.shippingAddress,
+        updateData.customerDetails,
         updateData.status,
         updateData.paymentDetails,
         orderId
@@ -175,7 +179,7 @@ export async function updateOrderStatus(orderId, status) {
 export async function getDealers() {
     try {
         const result = await db.query(`
-            SELECT id, name, address, phone, email, role 
+            SELECT id, name, address, phone, email, role, gst_no 
             FROM phantom_dealers 
             ORDER BY CASE WHEN role = 'admin' THEN 0 ELSE 1 END, name ASC
         `);
@@ -213,6 +217,87 @@ export async function searchDealer(dealerName, password) {
     }
 }
 
+export async function createDealer(dealerData) {
+    const query = `
+        INSERT INTO phantom_dealers (
+            name,
+            phone,
+            email,
+            address,
+            password,
+            role,
+            gst_no
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, name, phone, email, address, role, gst_no`;
+
+    const values = [
+        dealerData.name,
+        dealerData.phone,
+        dealerData.email,
+        dealerData.address,
+        dealerData.password,
+        dealerData.role || 'dealer',
+        dealerData.gst_no
+    ];
+
+    try {
+        const result = await db.query(query, values);
+        return result[0];
+    } catch (error) {
+        console.error('Error creating dealer:', error);
+        throw error;
+    }
+}
+
+export async function updateDealerById(dealerId, dealerData) {
+    let query = `
+        UPDATE phantom_dealers 
+        SET 
+            name = $1,
+            phone = $2,
+            email = $3,
+            address = $4,
+            role = $5,
+            gst_no = $6`;
+
+    let values = [
+        dealerData.name,
+        dealerData.phone,
+        dealerData.email,
+        dealerData.address,
+        dealerData.role,
+        dealerData.gst_no
+    ];
+
+    // Add password to update only if provided
+    if (dealerData.password) {
+        query += `, password = $${values.length + 1}`;
+        values.push(dealerData.password);
+    }
+
+    query += ` WHERE id = $${values.length + 1} 
+        RETURNING id, name, phone, email, address, role, gst_no`;
+    values.push(dealerId);
+
+    try {
+        const result = await db.query(query, values);
+        return result[0];
+    } catch (error) {
+        console.error('Error updating dealer:', error);
+        throw error;
+    }
+}
+
+export async function deleteDealerById(dealerId) {
+    try {
+        await db.query('DELETE FROM phantom_dealers WHERE id = $1', [dealerId]);
+        return true;
+    } catch (error) {
+        console.error('Error deleting dealer:', error);
+        throw error;
+    }
+}
+
 export async function getSpecifications() {
     try {
         const result = await db.query('SELECT * FROM phantom_specifications ORDER BY type_name');
@@ -238,6 +323,7 @@ export async function createSpecification(specData) {
         specData.type_name,
         specData.fabric_selection,
         specData.fabric_count,
+
         JSON.stringify(specData.fabric_options || []), // Convert arrays to JSON strings
         JSON.stringify(specData.profiles || []),
         specData.min_fabric,

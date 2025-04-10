@@ -14,6 +14,7 @@ import Specifications from './Pages/Specifications';
 import DealerDashboard from './Pages/DealerDashboard';
 import AdminLedger from './Pages/AdminLedger';
 import DealerLedger from './Pages/DealerLedger';
+import ManageDealers from './Pages/ManageDealers';
 
 function ProtectedRoute({ children }) {
   const { currentDealer } = useOrders();
@@ -52,6 +53,20 @@ function AdminRouteHandler({ children }) {
 }
 
 function App() {
+  const navigate = useNavigate();
+
+  const handleLogoClick = () => {
+    const storedDealer = localStorage.getItem('currentDealer');
+    if (storedDealer) {
+      const dealer = JSON.parse(storedDealer);
+      if (dealer.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  };
+
   console.log('App component rendered');
   console.log('import.meta.env.VITE_AUTH_URL', import.meta.env.VITE_AUTH_URL);
   return (
@@ -64,7 +79,13 @@ function App() {
               <>
                 <div className="top-bar">
                   <div className="logo-section">
-                    <img src={logo} alt="Company Logo" className="logo" />
+                    <img 
+                      src={logo} 
+                      alt="Company Logo" 
+                      className="logo" 
+                      onClick={handleLogoClick}
+                      style={{ cursor: 'pointer' }} // Add cursor style to indicate clickable
+                    />
                   </div>
                 </div>
                 <div className="main-content">
@@ -87,6 +108,7 @@ function App() {
                     <Route path="/specifications" element={<Specifications />} />
                     <Route path="/admin-ledger" element={<AdminLedger />} />
                     <Route path="/dealer-ledger" element={<DealerLedger />} />
+                    <Route path="/manage-dealers" element={<ManageDealers />} />
                   </Routes>
                 </div>
               </>

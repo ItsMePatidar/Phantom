@@ -10,7 +10,10 @@ import {
     getSpecifications,
     createSpecification,
     updateSpecification,
-    deleteSpecification
+    deleteSpecification,
+    createDealer,
+    updateDealerById,
+    deleteDealerById
 } from '../api/api';
 
 const OrderContext = createContext();
@@ -222,6 +225,40 @@ export function OrderProvider({ children }) {
         }
     };
 
+    const addDealer = async (dealerData) => {
+        try {
+            const newDealer = await createDealer(dealerData);
+            setDealers(prev => [...prev, newDealer]);
+            return newDealer;
+        } catch (error) {
+            console.error("Failed to add dealer:", error);
+            throw error;
+        }
+    };
+
+    const updateDealer = async (dealerId, updateData) => {
+        try {
+            const updatedDealer = await updateDealerById(dealerId, updateData);
+            setDealers(prev => prev.map(dealer => 
+                dealer.id === dealerId ? updatedDealer : dealer
+            ));
+            return updatedDealer;
+        } catch (error) {
+            console.error("Failed to update dealer:", error);
+            throw error;
+        }
+    };
+
+    const deleteDealer = async (dealerId) => {
+        try {
+            await deleteDealerById(dealerId);
+            setDealers(prev => prev.filter(dealer => dealer.id !== dealerId));
+        } catch (error) {
+            console.error("Failed to delete dealer:", error);
+            throw error;
+        }
+    };
+
     return (
         <OrderContext.Provider value={{ 
             orders,
@@ -240,7 +277,10 @@ export function OrderProvider({ children }) {
             fetchSpecifications,
             addSpecification,
             updateSpecificationById,
-            deleteSpecificationById
+            deleteSpecificationById,
+            addDealer,
+            updateDealer,
+            deleteDealer
         }}>
             {children}
         </OrderContext.Provider>

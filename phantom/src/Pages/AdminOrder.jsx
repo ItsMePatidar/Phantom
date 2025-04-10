@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ItemModal from '../Components/ItemModal';
 import { useOrders } from '../context/OrderContext';
-import '../Styles/home.css';
+// import '../Styles/home.css';
+import '../Styles/AdminOrder.css';
 
 function AdminOrder() {
     const [placeOrderList, setPlaceOrderList] = useState([]);
@@ -28,15 +29,21 @@ function AdminOrder() {
     });
     const [editingTransaction, setEditingTransaction] = useState(null);
     const [productionStatus, setProductionStatus] = useState(originalOrder?.status?.delivery || '');
+    const [dispatchDetails, setDispatchDetails] = useState(originalOrder?.status?.dispatch_details || '');
     const [isCashPayment, setIsCashPayment] = useState(originalOrder?.is_cash_payment || false);
     const [orderStatus, setOrderStatus] = useState(originalOrder?.status?.place || 'Waiting for Approval');
     const [startProduction, setStartProduction] = useState(originalOrder?.status?.startProduction || false);
     const [startCredit, setStartCredit] = useState(originalOrder?.status?.startCredit || false);
+    const [customerDetails, setCustomerDetails] = useState(originalOrder?.customer_details || {
+        name: '',
+        address: '',
+        phone: ''
+    });
 
     useEffect(() => {
         if (originalOrder) {
             console.log('originalOrder', originalOrder);
-            
+
             setPlaceOrderList(originalOrder.items);
             setDeliveryType(originalOrder.shipping_address?.type || 'self');
             setAddress(originalOrder.shipping_address?.address || dealer?.address || '');
@@ -73,7 +80,7 @@ function AdminOrder() {
 
     const handleSaveItem = (newItem) => {
         if (newItem.id && placeOrderList.some(item => item.id === newItem.id)) {
-            setPlaceOrderList(placeOrderList.map(item => 
+            setPlaceOrderList(placeOrderList.map(item =>
                 item.id === newItem.id ? newItem : item
             ));
         } else {
@@ -132,19 +139,27 @@ function AdminOrder() {
                     type: deliveryType,
                     address: deliveryType !== 'self' ? address : null
                 },
+                customerDetails: {
+                    name: customerDetails.name,
+                    address: customerDetails.address,
+                    phone: customerDetails.phone
+                },
                 status: {
                     place: orderStatus,
                     payment: calculatePaymentStatus(transactions, requiredAmount),
                     delivery: productionStatus,
+                    final: calculateFinalStatus(orderStatus, calculatePaymentStatus(transactions, requiredAmount), productionStatus),
                     startProduction: startProduction,
-                    startCredit: startCredit
+                    startCredit: startCredit,
+                    dispatch_details: productionStatus === 'Dispatched' ? dispatchDetails : ''
                 },
                 paymentDetails: {
                     requiredAmount: parseFloat(requiredAmount),
                     payments: transactions
-                }
+                },
+                customer_details: customerDetails
             };
-            
+
             await updateOrderById(originalOrder.id, updatedOrderData);
             alert('Order updated successfully!');
             navigate('/order-history');
@@ -159,8 +174,8 @@ function AdminOrder() {
         let updatedTransactions;
 
         if (editingTransaction) {
-            updatedTransactions = transactions.map(t => 
-                t.id === editingTransaction.id 
+            updatedTransactions = transactions.map(t =>
+                t.id === editingTransaction.id
                     ? {
                         ...t,
                         method: paymentDetails.method,
@@ -220,20 +235,21 @@ function AdminOrder() {
         console.log('Total Amount:', calculateTotal());
         console.log('Start Production:', startProduction);
         console.log('Start Credit:', startCredit);
-        
-        
+
         if (totalPaid >= calculateTotal()) return 'Payment Received';
         if (totalPaid < reqAmount && reqAmount < calculateTotal() && startProduction === true && startCredit === false) return 'Advance Due for Dispatch';
         if (totalPaid < reqAmount && reqAmount < calculateTotal() && startProduction === false && startCredit === false) return 'Advance Due for Production';
         if ((startProduction === true || totalPaid >= reqAmount) && startCredit === false) return 'Payment Due for Dispatch';
         if (startProduction === false && startCredit === false) return 'Payment Due for Production';
         if (startProduction === true && startCredit === true) return 'Payment Due';
-
-
-
-        
         return 'Payment Pending';
     };
+
+    const calculateFinalStatus = (orderStatus, paymentStatus, productionStatus) => {
+        if (orderStatus != 'Accepted') return orderStatus;
+        if (paymentStatus.endsWith('for Production')) return 'Payment Due';
+        return productionStatus;
+    }
 
     const calculateTotalPaid = () => {
         return transactions.reduce((sum, txn) => sum + txn.amount, 0);
@@ -254,6 +270,7 @@ function AdminOrder() {
                     <h3>Dealer Information</h3>
                     <p><strong>Name:</strong> {dealer.name}</p>
                     <p><strong>Contact:</strong> {dealer.phone}</p>
+                    <p><strong>GST No:</strong> {dealer.gst_no}</p>
                     <p><strong>Address:</strong> {dealer.address}</p>
                     {dealer.email && <p><strong>Email:</strong> {dealer.email}</p>}
                 </div>
@@ -274,22 +291,24 @@ function AdminOrder() {
                     </div>
                 </div>
 
+                
+
                 <div className="order-status-section">
                     <h2>Order Status</h2>
                     <div className="order-status-options">
-                        <button 
+                        <button
                             className={`status-button accepted ${orderStatus === 'Accepted' ? 'selected' : ''}`}
                             onClick={() => handleStatusClick('Accepted')}
                         >
                             Accept Order
                         </button>
-                        <button 
+                        <button
                             className={`status-button rejected ${orderStatus === 'Rejected' ? 'selected' : ''}`}
                             onClick={() => handleStatusClick('Rejected')}
                         >
                             Reject Order
                         </button>
-                        <button 
+                        <button
                             className={`status-button waiting ${orderStatus === 'Waiting for Change' ? 'selected' : ''}`}
                             onClick={() => handleStatusClick('Waiting for Change')}
                         >
@@ -306,10 +325,10 @@ function AdminOrder() {
                             <th>Fabric</th>
                             <th>Profile</th>
                             <th>Dimension</th>
-                            <th style={{textAlign:'center'}}>Quantity</th>
-                            <th style={{textAlign:'center'}}>Calculated Size</th>
-                            <th style={{textAlign:'right'}}>Price</th>
-                            <th style={{textAlign:'right'}}>Amount</th>
+                            <th style={{ textAlign: 'center' }}>Quantity</th>
+                            <th style={{ textAlign: 'center' }}>Calculated Size</th>
+                            <th style={{ textAlign: 'right' }}>Price</th>
+                            <th style={{ textAlign: 'right' }}>Amount</th>
                             <th>Actions</th>
                         </tr>
                     </thead>)}
@@ -320,19 +339,19 @@ function AdminOrder() {
                                 <td>{order.Fabric1} {order.Fabric2 ? `- ${order.Fabric2}` : ''}</td>
                                 <td>{order.Profile}</td>
                                 <td>W {order.Width}cm / L {order.Length}cm</td>
-                                <td style={{textAlign:'center'}}>{order.Quantity}</td>
-                                <td style={{textAlign:'center'}}>{order.calculatedDimension.toFixed(2)} Sq. mtr.</td>
-                                <td style={{textAlign:'right'}}>₹{order.Price}</td>
-                                <td style={{textAlign:'right'}}>₹{(order.Price * order.calculatedDimension).toFixed(2)}</td>
+                                <td style={{ textAlign: 'center' }}>{order.Quantity}</td>
+                                <td style={{ textAlign: 'center' }}>{order.calculatedDimension.toFixed(2)} Sq. mtr.</td>
+                                <td style={{ textAlign: 'right' }}>₹{order.Price}</td>
+                                <td style={{ textAlign: 'right' }}>₹{(order.Price * order.calculatedDimension).toFixed(2)}</td>
                                 <td>
                                     <div className="action-buttons">
-                                        <button 
+                                        <button
                                             className="edit-btn"
                                             onClick={() => handleEdit(order)}
                                         >
                                             Edit
                                         </button>
-                                        <button 
+                                        <button
                                             className="delete-btn"
                                             onClick={() => handleDelete(order.id)}
                                         >
@@ -349,32 +368,79 @@ function AdminOrder() {
                                     <td className="text-right">
                                         <strong>Total Quantity: </strong>
                                     </td>
-                                    <td style={{textAlign:'center'}}>
+                                    <td style={{ textAlign: 'center' }}>
                                         <strong>{calculateTotalQuantity()}</strong>
                                     </td>
                                     <td colSpan="1"></td>
                                     <td className="text-right"><strong>Subtotal</strong></td>
-                                    <td style={{textAlign:'right'}}><strong>₹{calculateSubTotal().toFixed(2)}</strong></td>
+                                    <td style={{ textAlign: 'right' }}><strong>₹{calculateSubTotal().toFixed(2)}</strong></td>
                                     <td></td>
                                 </tr>
                                 {!isCashPayment && Object.entries(calculateGSTByRate()).map(([rate, amount]) => (
                                     <tr key={rate} className="total-row gst">
                                         <td colSpan="6"></td>
                                         <td className="text-right"><strong>GST @{rate}%</strong></td>
-                                        <td style={{textAlign:'right'}}><strong>₹{amount.toFixed(2)}</strong></td>
+                                        <td style={{ textAlign: 'right' }}><strong>₹{amount.toFixed(2)}</strong></td>
                                         <td></td>
                                     </tr>
                                 ))}
                                 <tr className="total-row grand-total">
                                     <td colSpan="6"></td>
                                     <td className="text-right"><strong>Total</strong></td>
-                                    <td style={{textAlign:'right'}}><strong>₹{calculateTotal().toFixed(2)}</strong></td>
+                                    <td style={{ textAlign: 'right' }}><strong>₹{calculateTotal().toFixed(2)}</strong></td>
                                     <td></td>
                                 </tr>
                             </>
                         )}
                     </tbody>
                 </table>
+
+                <div className="customer-details-section">
+                    <h2>Customer Details</h2>
+                    <div className="customer-form">
+                        <div className="form-row"></div>
+                        <div className="address-input-container">
+                            <label>Dispatch Details</label>
+                            <input
+                                type="text"
+                                className="enhanced-address-input"
+                                value={customerDetails.name}
+                                onChange={(e) => setCustomerDetails({
+                                    ...customerDetails,
+                                    name: e.target.value
+                                })}
+                                placeholder="Enter Dispatch Details"
+                            />
+                        </div>
+                        <div className="address-input-container">
+                            <label>Dispatch Details</label>
+                            <input
+                                type="text"
+                                className="enhanced-address-input"
+                                value={customerDetails.phone}
+                                onChange={(e) => setCustomerDetails({
+                                    ...customerDetails,
+                                    phone: e.target.value
+                                })}
+                                placeholder="Enter Dispatch Details"
+                            />
+                        </div>
+                        <div className="address-input-container">
+                            <label>Dispatch Details</label>
+                            <input
+                                type="text"
+                                className="enhanced-address-input"
+                                value={customerDetails.address}
+                                onChange={(e) => setCustomerDetails({
+                                    ...customerDetails,
+                                    address: e.target.value
+                                })}
+                                placeholder="Enter Dispatch Details"
+                            />
+                        </div>
+                    </div>
+                </div>
+                
                 {placeOrderList.length > 0 && (
                     <>
                         <div className="delivery-section">
@@ -412,13 +478,17 @@ function AdminOrder() {
                                 </label>
                             </div>
                             <div className={`address-field ${deliveryType !== 'self' ? 'visible' : ''}`}>
-                                <textarea
-                                    className="address-input"
-                                    value={address}
-                                    onChange={(e) => setAddress(e.target.value)}
-                                    placeholder="Enter delivery address..."
-                                    required={deliveryType !== 'self'}
-                                />
+                                <div className="address-input-container">
+                                    <label>Delivery Address</label>
+                                    <input
+                                        type="text"
+                                        className="enhanced-address-input"
+                                        value={address}
+                                        onChange={(e) => setAddress(e.target.value)}
+                                        placeholder="Enter complete delivery address..."
+                                        required={deliveryType !== 'self'}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -461,7 +531,7 @@ function AdminOrder() {
 
                             <div className="payment-header">
                                 <div>Required Amount: ₹{requiredAmount || '0'}</div>
-                                <button 
+                                <button
                                     className="place-order-btn"
                                     onClick={() => setIsPaymentModalOpen(true)}
                                 >
@@ -479,13 +549,13 @@ function AdminOrder() {
                                             <span>₹{txn.amount}</span>
                                             {txn.notes && <span>Notes: {txn.notes}</span>} {/* Display notes if available */}
                                             <div className="transaction-actions">
-                                                <button 
+                                                <button
                                                     className="edit-btn small"
                                                     onClick={() => handleEditTransaction(txn)}
                                                 >
                                                     Edit
                                                 </button>
-                                                <button 
+                                                <button
                                                     className="delete-btn small"
                                                     onClick={() => handleDeleteTransaction(txn.id)}
                                                 >
@@ -607,21 +677,32 @@ function AdminOrder() {
                                     />
                                     Dispatched
                                 </label>}
-                                {/* <label className="status-option">
-                                    <input
-                                        type="radio"
-                                        name="production_status"
-                                        value="Delivered"
-                                        checked={productionStatus === 'Delivered'}
-                                        onChange={(e) => handleStatusChange(e.target.value)}
-                                    />
-                                    Delivered
-                                </label> */}
                             </div>
+                            {productionStatus === 'Dispatched' && (
+                                // <div className="dispatch-details-section">
+                                //     <input
+                                //         value={dispatchDetails}
+                                //         onChange={(e) => setDispatchDetails(e.target.value)}
+                                //         placeholder="Enter dispatch details (e.g., tracking number, courier service)"
+                                //         rows="3"
+                                //         className="dispatch-input"
+                                //     />
+                                // </div>
+                                <div className="address-input-container">
+                                    <label>Dispatch Details</label>
+                                    <input
+                                        type="text"
+                                        className="enhanced-address-input"
+                                        value={dispatchDetails}
+                                        onChange={(e) => setDispatchDetails(e.target.value)}
+                                        placeholder="Enter Dispatch Details"
+                                    />
+                                </div>
+                            )}
                         </div>}
 
                         <div className="place-order-container">
-                            <button 
+                            <button
                                 className="place-order-btn confirm-order"
                                 onClick={handleUpdateOrder}
                             >
@@ -632,7 +713,7 @@ function AdminOrder() {
                 )}
 
             </div>
-            <ItemModal 
+            <ItemModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSaveItem}

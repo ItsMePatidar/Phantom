@@ -99,7 +99,7 @@ function UpdateOrder() {
                 place: 'Waiting for Approval',
                 payment: originalOrder.status.payment,
                 delivery: originalOrder.status.delivery,
-                final: ''
+                final: 'Waiting for Approval'
             },
             delivery: {
                 type: deliveryType,

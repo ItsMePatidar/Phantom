@@ -111,7 +111,7 @@ function Home() {
                             <td>₹{parseFloat(order.total_amount).toFixed(2)}</td>
                             <td>{order.status?.payment}</td>
                             <td>{order.status?.delivery}</td>
-                            {
+                            {/* {
                                 (() => {
                                     try {
                                         
@@ -127,7 +127,8 @@ function Home() {
                                         // return <td>{order.status?.place}</td>
                                     }
                                 })()
-                            }
+                            } */}
+                            <td>{order.status?.final}</td>
                         </tr>
                     ))}
                 </tbody>

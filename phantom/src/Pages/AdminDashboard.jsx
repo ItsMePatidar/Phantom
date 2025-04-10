@@ -117,6 +117,12 @@ function AdminDashboard() {
                 >
                     Get Ledger
                 </button>
+                <button 
+                    className="manage-specs-btn"
+                    onClick={() => navigate('/manage-dealers')}
+                >
+                    Manage Dealers
+                </button>
             </div>
 
             {isSpecModalOpen && (
