@@ -1,11 +1,16 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useOrders } from '../context/OrderContext';
 import '../Styles/home.css';
 
 function Home() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { orders, dealers, currentDealer, setCurrentDealer, loading, isAdmin, fetchOrders } = useOrders();
+    const [filteredOrders, setFilteredOrders] = useState([]);
+
+    // Get the filter status from navigation state
+    const filterStatus = location.state?.filterStatus || 'Overall';
 
     useEffect(() => {
         if (currentDealer) {
@@ -14,21 +19,48 @@ function Home() {
         }
     }, [currentDealer]);
 
+    // Filter orders based on status when orders or filterStatus changes
+    useEffect(() => {
+        if (!orders) return;
+
+        if (filterStatus === 'Overall') {
+            setFilteredOrders(orders);
+            return;
+        }
+
+        const filtered = orders.filter(order => {
+            return order.status?.final === filterStatus;
+        });
+        setFilteredOrders(filtered);
+    }, [orders, filterStatus]);
+
     if (loading) {
         return <div>Loading orders...</div>;
     }
 
-    if (!orders || orders.length === 0) {
-        console.log('orders ', orders);
+    if (!filteredOrders || filteredOrders.length === 0) {
+        console.log('filteredOrders ', filteredOrders);
         return (
             <div className="home">
                 <div className="header-container">
-                    <h1 className="order-title">Order History</h1>
-                    <button className="place-order-btn" onClick={() => navigate('/place-order')}>
-                        Place New Order
-                    </button>
+                    <h1 className="order-title">
+                        {filterStatus === 'Overall' ? 'Order History' : `${filterStatus} Orders`}
+                    </h1>
+                    <div className="header-actions">
+                        {isAdmin(currentDealer) && (
+                            <button 
+                                className="dashboard-btn" 
+                                onClick={() => navigate('/admin-dashboard')}
+                            >
+                                Back to Dashboard
+                            </button>
+                        )}
+                        <button className="place-order-btn" onClick={() => navigate('/place-order')}>
+                            Place New Order
+                        </button>
+                    </div>
                 </div>
-                <p>No orders found.</p>
+                <p>No orders found for status: {filterStatus}</p>
             </div>
         );
     }
@@ -69,14 +101,16 @@ function Home() {
     return (
         <div className="home">
             <div className="header-container">
-                <h1 className="order-title">Order History</h1>
+                <h1 className="order-title">
+                    {filterStatus === 'Overall' ? 'Order History' : `${filterStatus} Orders`}
+                </h1>
                 <div className="header-actions">
                     {isAdmin(currentDealer) && (
                         <button 
                             className="dashboard-btn" 
-                            onClick={() => navigate('/dashboard')}
+                            onClick={() => navigate('/admin-dashboard')}
                         >
-                            View Dashboard
+                            Back to Dashboard
                         </button>
                     )}
                     <button className="place-order-btn" onClick={handlePlaceOrder}>
@@ -97,7 +131,7 @@ function Home() {
                     </tr>
                 </thead>
                 <tbody>
-                    {orders.map(order => (
+                    {filteredOrders.map(order => (
                         <tr 
                             key={order.id} 
                             onClick={() => handleOrderClick(order)}
@@ -111,23 +145,6 @@ function Home() {
                             <td>₹{parseFloat(order.total_amount).toFixed(2)}</td>
                             <td>{order.status?.payment}</td>
                             <td>{order.status?.delivery}</td>
-                            {/* {
-                                (() => {
-                                    try {
-                                        
-                                        if (order.status?.place != 'Accepted') {
-                                            return <td>{order.status?.place}</td>
-                                        } else if (order.status?.payment === 'Payment Pending') {
-                                            return <td>{order.status?.payment}</td>
-                                        } else if (order.status?.delivery != 'Dispatched') {
-                                            return <td>{order.status?.delivery}</td>
-                                        }
-                                    } catch (error) {
-                                        console.error('Error accessing order status:', order);
-                                        // return <td>{order.status?.place}</td>
-                                    }
-                                })()
-                            } */}
                             <td>{order.status?.final}</td>
                         </tr>
                     ))}

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrders } from '../context/OrderContext';
 import SpecificationModal from '../Components/SpecificationModal';
-import '../Styles/AdminDashboard.css';
 
 function AdminDashboard() {
     const navigate = useNavigate();
@@ -30,24 +29,70 @@ function AdminDashboard() {
     });
 
     const statusCounts = {
-        waitingApproval: filteredOrders.filter(order => 
-            order.status?.place === 'Waiting for Approval'
+        overall: filteredOrders.length || 0,
+        waitingForApproval: filteredOrders.filter(order =>
+            order.status?.final === 'Waiting for Approval'
         ).length || 0,
-        waitingPayment: filteredOrders.filter(order => 
-            order.status?.place === 'Accepted' && order.status?.payment === 'Payment Pending'
+        waitingForChange: filteredOrders.filter(order =>
+            order.status?.final === 'Waiting for Change'
         ).length || 0,
-        pendingPayment: filteredOrders.filter(order => 
-            order.status?.place === 'Accepted' && order.status?.payment === 'Partial Payment Received'
+        rejected: filteredOrders.filter(order =>
+            order.status?.final === 'Rejected'
         ).length || 0,
-        pendingPaymentStartProd: filteredOrders.filter(order => 
-            order.status?.place === 'Accepted' && order.status?.payment === 'Partial Payment Received - For Production'
+        payemntDue: filteredOrders.filter(order =>
+            order.status?.final === 'Payment Due'
         ).length || 0,
-        underProcess: filteredOrders.filter(order => 
-            order.status?.delivery === 'Under Process'
+        underProcess: filteredOrders.filter(order =>
+            order.status?.final === 'Under Process'
         ).length || 0,
-        readyToDispatch: filteredOrders.filter(order => 
-            order.status?.delivery === 'Ready to Dispatch'
-        ).length || 0
+        readyToDispatch: filteredOrders.filter(order =>
+            order.status?.final === 'Ready to Dispatch'
+        ).length || 0,
+        dispatched: filteredOrders.filter(order =>
+            order.status?.final === 'Dispatched'
+        ).length || 0,
+
+
+        // advanceDueForProduction: filteredOrders.filter(order =>
+        //     order.status?.payment === 'Advance Due for Production'
+        // ).length || 0,
+        // advandeDueForDispatch: filteredOrders.filter(order =>
+        //     order.status?.payment === 'Advance Due for Dispatch'
+        // ).length || 0,
+        // paymentDueForProduction: filteredOrders.filter(order =>
+        //     order.status?.payment === 'Payment Due for Production'
+        // ).length || 0,
+        // paymentDueForDispatch: filteredOrders.filter(order =>
+        //     order.status?.payment === 'Payment Due for Dispatch'
+        // ).length || 0,
+        // paymentDue: filteredOrders.filter(order =>
+        //     order.status?.payment === 'Payment Due'
+        // ).length || 0,
+        // underProcess: filteredOrders.filter(order =>
+        //     order.status?.final === 'Under Process'
+        // ).length || 0,
+
+
+
+
+        // waitingApproval: filteredOrders.filter(order => 
+        //     order.status?.place === 'Waiting for Approval'
+        // ).length || 0,
+        // waitingPayment: filteredOrders.filter(order => 
+        //     order.status?.place === 'Accepted' && order.status?.payment === 'Payment Pending'
+        // ).length || 0,
+        // pendingPayment: filteredOrders.filter(order => 
+        //     order.status?.place === 'Accepted' && order.status?.payment === 'Partial Payment Received'
+        // ).length || 0,
+        // pendingPaymentStartProd: filteredOrders.filter(order => 
+        //     order.status?.place === 'Accepted' && order.status?.payment === 'Partial Payment Received - For Production'
+        // ).length || 0,
+        // underProcess: filteredOrders.filter(order => 
+        //     order.status?.delivery === 'Under Process'
+        // ).length || 0,
+        // readyToDispatch: filteredOrders.filter(order => 
+        //     order.status?.delivery === 'Ready to Dispatch'
+        // ).length || 0
     };
 
     const handleBoxClick = (status) => {
@@ -65,7 +110,7 @@ function AdminDashboard() {
                 <h1>Admin Dashboard</h1>
                 <div className="payment-filter">
                     <label>Payment Type:</label>
-                    <select 
+                    <select
                         value={paymentType}
                         onChange={(e) => setPaymentType(e.target.value)}
                         className="payment-type-select"
@@ -77,7 +122,42 @@ function AdminDashboard() {
                 </div>
             </div>
             <div className="status-boxes">
-                <div className="status-box waiting" onClick={() => handleBoxClick('Waiting for Approval')}>
+                <div className="status-box b1" onClick={() => handleBoxClick('Overall')}>
+                    <h3>Overall</h3>
+                    <div className="count">{statusCounts.overall}</div>
+                </div>
+                <div className="status-box b2" onClick={() => handleBoxClick('Waiting for Approval')}>
+                    <h3>Approval Pending</h3>
+                    <div className="count">{statusCounts.waitingForApproval}</div>
+                </div>
+                <div className="status-box b3" onClick={() => handleBoxClick('Waiting for Change')}>
+                    <h3>Waiting for Changes</h3>
+                    <div className="count">{statusCounts.waitingForChange}</div>
+                </div>
+                <div className="status-box b4" onClick={() => handleBoxClick('Rejected')}>
+                    <h3>Rejected</h3>
+                    <div className="count">{statusCounts.rejected}</div>
+                </div>
+                <div className="status-box b5" onClick={() => handleBoxClick('Payment Due')}>
+                    <h3>Payment Due</h3>
+                    <div className="count">{statusCounts.payemntDue}</div>
+                </div>
+                <div className="status-box b6" onClick={() => handleBoxClick('Under Process')}>
+                    <h3>Under Process</h3>
+                    <div className="count">{statusCounts.underProcess}</div>
+                </div>
+                <div className="status-box b7" onClick={() => handleBoxClick('Ready to Dispatch')}>
+                    <h3>Ready to Dispatch</h3>
+                    <div className="count">{statusCounts.readyToDispatch}</div>
+                </div>
+                <div className="status-box b8" onClick={() => handleBoxClick('Dispatched')}>
+                    <h3>Dispatched</h3>
+                    <div className="count">{statusCounts.dispatched}</div>
+                </div>
+
+
+
+                {/* <div className="status-box waiting" onClick={() => handleBoxClick('Waiting for Approval')}>
                     <h3>Waiting for Approval</h3>
                     <div className="count">{statusCounts.waitingApproval}</div>
                 </div>
@@ -101,23 +181,23 @@ function AdminDashboard() {
                 <div className="status-box ready" onClick={() => handleBoxClick('Ready to Dispatch')}>
                     <h3>Ready to Dispatch</h3>
                     <div className="count">{statusCounts.readyToDispatch}</div>
-                </div>
+                </div> */}
             </div>
 
             <div className="admin-actions">
-                <button 
+                <button
                     className="manage-specs-btn"
                     onClick={() => navigate('/specifications')}
                 >
                     Manage Product Specifications
                 </button>
-                <button 
+                <button
                     className="manage-specs-btn"
                     onClick={() => navigate('/admin-ledger')}
                 >
                     Get Ledger
                 </button>
-                <button 
+                <button
                     className="manage-specs-btn"
                     onClick={() => navigate('/manage-dealers')}
                 >
