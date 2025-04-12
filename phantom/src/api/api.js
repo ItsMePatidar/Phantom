@@ -28,12 +28,8 @@ export async function createOrder(orderData) {
         orderData.items,
         orderData.shippingAddress,
         orderData.customerDetails,
-        {
-            place: "Waiting for Approval",
-            payment: "Payment Pending",
-            delivery: ""
-        },
-        orderData.paymentDetails || {}
+        orderData.status,
+        orderData.paymentDetails || {requiredAmount : orderData.totalAmount}
     ];
 
     try {

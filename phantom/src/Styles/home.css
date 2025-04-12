@@ -232,12 +232,23 @@
     display: flex;
     justify-content: flex-end;
     margin-top: 20px;
-    padding: 0 12px;
+    padding: 20px;
 }
 
 .confirm-order {
     font-size: 18px;
     padding: 15px 30px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.confirm-order:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
 }
 
 /* ...existing styles... */

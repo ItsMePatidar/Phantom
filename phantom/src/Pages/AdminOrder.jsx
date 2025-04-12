@@ -39,6 +39,7 @@ function AdminOrder() {
         address: '',
         phone: ''
     });
+    const [isCustomerExpanded, setIsCustomerExpanded] = useState(false);
 
     useEffect(() => {
         if (originalOrder) {
@@ -56,9 +57,7 @@ function AdminOrder() {
     }, [originalOrder, dealer]);
 
     useEffect(() => {
-        if (!originalOrder.payment_details?.requiredAmount) {
             setRequiredAmount(String(calculateTotal()));
-        }
     }, [placeOrderList, isCashPayment]);
 
     const handleAddItem = () => {
@@ -157,7 +156,6 @@ function AdminOrder() {
                     requiredAmount: parseFloat(requiredAmount),
                     payments: transactions
                 },
-                customer_details: customerDetails
             };
 
             await updateOrderById(originalOrder.id, updatedOrderData);
@@ -266,14 +264,115 @@ function AdminOrder() {
     return (
         <>
             <div className="home">
-                <div className="dealer-info">
-                    <h3>Dealer Information</h3>
-                    <p><strong>Name:</strong> {dealer.name}</p>
-                    <p><strong>Contact:</strong> {dealer.phone}</p>
-                    <p><strong>GST No:</strong> {dealer.gst_no}</p>
-                    <p><strong>Address:</strong> {dealer.address}</p>
-                    {dealer.email && <p><strong>Email:</strong> {dealer.email}</p>}
+                <div className="top-section-container">
+                    <div className="dealer-info">
+                        <h3>Dealer Info</h3>
+                        <p><strong>Name:</strong> {dealer.name}</p>
+                        <p><strong>Ph:</strong> {dealer.phone}</p>
+                        <p><strong>GST:</strong> {dealer.gst_no}</p>
+                        <p><strong>Address:</strong> {dealer.address}</p>
+                    </div>
+                    
+                    <div className="delivery-section">
+                        <h2>Delivery Details</h2>
+                        <div className="delivery-options">
+                            <label className="delivery-option">
+                                <input
+                                    type="radio"
+                                    name="delivery"
+                                    value="self"
+                                    checked={deliveryType === 'self'}
+                                    onChange={(e) => setDeliveryType(e.target.value)}
+                                />
+                                Self Pickup
+                            </label>
+                            <label className="delivery-option">
+                                <input
+                                    type="radio"
+                                    name="delivery"
+                                    value="local"
+                                    checked={deliveryType === 'local'}
+                                    onChange={(e) => setDeliveryType(e.target.value)}
+                                />
+                                Local Transport
+                            </label>
+                            <label className="delivery-option">
+                                <input
+                                    type="radio"
+                                    name="delivery"
+                                    value="courier"
+                                    checked={deliveryType === 'courier'}
+                                    onChange={(e) => setDeliveryType(e.target.value)}
+                                />
+                                Courier Service
+                            </label>
+                        </div>
+                        {deliveryType !== 'self' && (
+                            <div className="address-input-container">
+                                <input
+                                    type="text"
+                                    className="enhanced-address-input"
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    placeholder="Enter delivery address..."
+                                    required={deliveryType !== 'self'}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="customer-details-section">
+                        <h2>Customer Details</h2>
+                        <div className="customer-details-content">
+                            <ul className="customer-info-list">
+                                <li className="customer-info-item">
+                                    <span className="customer-info-label">Name:</span>
+                                    <span>{customerDetails.name || 'Not provided'}</span>
+                                </li>
+                                <li className="customer-info-item">
+                                    <span className="customer-info-label">Phone:</span>
+                                    <span>{customerDetails.phone || 'Not provided'}</span>
+                                </li>
+                                <li className="customer-info-item">
+                                    <span className="customer-info-label">Address:</span>
+                                    <span>{customerDetails.address || 'Not provided'}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
+
+                {placeOrderList.length > 0 && (
+                    <div className="order-status-section">
+                        <div className="status-header">
+                            <h2>Order Status</h2>
+                            <div className="current-status" data-status={orderStatus}>
+                                {orderStatus}
+                            </div>
+                        </div>
+                        <div className="status-buttons">
+                            <button
+                                className={`status-button accepted ${orderStatus === 'Accepted' ? 'selected' : ''}`}
+                                onClick={() => handleStatusClick('Accepted')}
+                            >
+                                Accept
+                            </button>
+                            <button
+                                className={`status-button rejected ${orderStatus === 'Rejected' ? 'selected' : ''}`}
+                                onClick={() => handleStatusClick('Rejected')}
+                            >
+                                Reject
+                            </button>
+                            <button
+                                className={`status-button waiting ${orderStatus === 'Waiting for Change' ? 'selected' : ''}`}
+                                onClick={() => handleStatusClick('Waiting for Change')}
+                            >
+                                Request Changes
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="header-container">
                     <h1 className="order-title">Update Order #{originalOrder?.id}</h1>
                     <div className="header-actions">
@@ -289,33 +388,6 @@ function AdminOrder() {
                             Add Item
                         </button>
                     </div>
-                </div>
-
-
-
-                <div className="order-status-section">
-                    <h2>Order Status</h2>
-                    <div className="order-status-options">
-                        <button
-                            className={`status-button accepted ${orderStatus === 'Accepted' ? 'selected' : ''}`}
-                            onClick={() => handleStatusClick('Accepted')}
-                        >
-                            Accept Order
-                        </button>
-                        <button
-                            className={`status-button rejected ${orderStatus === 'Rejected' ? 'selected' : ''}`}
-                            onClick={() => handleStatusClick('Rejected')}
-                        >
-                            Reject Order
-                        </button>
-                        <button
-                            className={`status-button waiting ${orderStatus === 'Waiting for Change' ? 'selected' : ''}`}
-                            onClick={() => handleStatusClick('Waiting for Change')}
-                        >
-                            Request Changes
-                        </button>
-                    </div>
-                    <p><strong>Current Status:</strong> {orderStatus}</p>
                 </div>
 
                 <table className="order-table">
@@ -395,312 +467,220 @@ function AdminOrder() {
                     </tbody>
                 </table>
 
-                {placeOrderList.length > 0 && (
-                    <>
-                        <div className="details-row">
-                            <div className="delivery-section">
-                                <h2>Delivery Details</h2>
-                                <div className="delivery-options">
-                                    <label className="delivery-option">
+                <div className="payment-section">
+                    <h2>Payment Details</h2>
+                    <div className="payment-details-container">
+                        <div className="payment-info-left">
+                            <div className="payment-summary-box">
+                                <div className="summary-item">
+                                    <label>Required Amount (₹):</label>
+                                    <input
+                                        type="number"
+                                        value={requiredAmount}
+                                        onChange={(e) => setRequiredAmount(e.target.value)}
+                                        placeholder="Enter required amount"
+                                        className="payment-input"
+                                    />
+                                </div>
+                                <div className="production-options">
+                                    <label className="checkbox-label">
                                         <input
-                                            type="radio"
-                                            name="delivery"
-                                            value="self"
-                                            checked={deliveryType === 'self'}
-                                            onChange={(e) => setDeliveryType(e.target.value)}
+                                            type="checkbox"
+                                            checked={startProduction}
+                                            onChange={(e) => setStartProduction(e.target.checked)}
                                         />
-                                        Self Pickup
+                                        Start Production
                                     </label>
-                                    <label className="delivery-option">
+                                    <label className="checkbox-label">
                                         <input
-                                            type="radio"
-                                            name="delivery"
-                                            value="local"
-                                            checked={deliveryType === 'local'}
-                                            onChange={(e) => setDeliveryType(e.target.value)}
+                                            type="checkbox"
+                                            checked={startCredit}
+                                            onChange={(e) => setStartCredit(e.target.checked)}
                                         />
-                                        Local Transport
-                                    </label>
-                                    <label className="delivery-option">
-                                        <input
-                                            type="radio"
-                                            name="delivery"
-                                            value="courier"
-                                            checked={deliveryType === 'courier'}
-                                            onChange={(e) => setDeliveryType(e.target.value)}
-                                        />
-                                        Courier Service
+                                        Credit
                                     </label>
                                 </div>
-                                <div className={`address-field ${deliveryType !== 'self' ? 'visible' : ''}`}>
-                                    <div className="address-input-container">
-                                        <label>Delivery Address</label>
-                                        <input
-                                            type="text"
-                                            className="enhanced-address-input"
-                                            value={address}
-                                            onChange={(e) => setAddress(e.target.value)}
-                                            placeholder="Enter complete delivery address..."
-                                            required={deliveryType !== 'self'}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="customer-details-section">
-                                <h2>Customer Details</h2>
-                                <div className="customer-form">
-                                    <div className="form-row"></div>
-                                    <div className="address-input-container">
-                                        <label>Name</label>
-                                        <input
-                                            type="text"
-                                            className="enhanced-address-input"
-                                            value={customerDetails.name}
-                                            onChange={(e) => setCustomerDetails({
-                                                ...customerDetails,
-                                                name: e.target.value
-                                            })}
-                                            placeholder="Enter Name"
-                                        />
-                                    </div>
-                                    <div className="address-input-container">
-                                        <label>Phone</label>
-                                        <input
-                                            type="text"
-                                            className="enhanced-address-input"
-                                            value={customerDetails.phone}
-                                            onChange={(e) => setCustomerDetails({
-                                                ...customerDetails,
-                                                phone: e.target.value
-                                            })}
-                                            placeholder="Enter Mobile Number"
-                                        />
-                                    </div>
-                                    <div className="address-input-container">
-                                        <label>Address</label>
-                                        <input
-                                            type="text"
-                                            className="enhanced-address-input"
-                                            value={customerDetails.address}
-                                            onChange={(e) => setCustomerDetails({
-                                                ...customerDetails,
-                                                address: e.target.value
-                                            })}
-                                            placeholder="Enter Address"
-                                        />
-                                    </div>
+                                <button
+                                    className="place-order-btn"
+                                    onClick={() => setIsPaymentModalOpen(true)}
+                                >
+                                    Add Payment
+                                </button>
+                                <div className="payment-status">
+                                    <p><strong>Total Received:</strong> ₹{calculateTotalPaid()}</p>
+                                    <p><strong>Status:</strong> {originalOrder.status?.payment || 'Pending'}</p>
                                 </div>
                             </div>
                         </div>
-
-                        <div className="payment-section">
-                            <h2>Payment Details</h2>
-                            <div className="payment-details-container">
-                                <div className="payment-info-left">
-                                    <div className="payment-summary-box">
-                                        <div className="summary-item">
-                                            <label>Required Amount (₹):</label>
-                                            <input
-                                                type="number"
-                                                value={requiredAmount}
-                                                onChange={(e) => setRequiredAmount(e.target.value)}
-                                                placeholder="Enter required amount"
-                                                className="payment-input"
-                                            />
-                                        </div>
-                                        <div className="production-options">
-                                            <label className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={startProduction}
-                                                    onChange={(e) => setStartProduction(e.target.checked)}
-                                                />
-                                                Start Production
-                                            </label>
-                                            <label className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={startCredit}
-                                                    onChange={(e) => setStartCredit(e.target.checked)}
-                                                />
-                                                Credit
-                                            </label>
-                                        </div>
-                                        <button
-                                            className="place-order-btn"
-                                            onClick={() => setIsPaymentModalOpen(true)}
-                                        >
-                                            Add Payment
-                                        </button>
-                                        <div className="payment-status">
-                                            <p><strong>Total Received:</strong> ₹{calculateTotalPaid()}</p>
-                                            <p><strong>Status:</strong> {originalOrder.status?.payment || 'Pending'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="payment-history-right">
-                                    <h3>Payment History</h3>
-                                    <div className="transaction-list">
-                                        {transactions.map(txn => (
-                                            <div key={txn.id} className="transaction-item">
-                                                <span>{new Date(txn.date).toLocaleDateString()}</span>
-                                                <span>{txn.method}</span>
-                                                <span>₹{txn.amount}</span>
-                                                {txn.notes && <span>Notes: {txn.notes}</span>} {/* Display notes if available */}
-                                                <div className="transaction-actions">
-                                                    <button
-                                                        className="edit-btn small"
-                                                        onClick={() => handleEditTransaction(txn)}
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        className="delete-btn small"
-                                                        onClick={() => handleDeleteTransaction(txn.id)}
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {isPaymentModalOpen && (
-                            <div className="modal-overlay">
-                                <div className="modal-content">
-                                    <h2>{editingTransaction ? 'Edit Payment' : 'Add Payment'}</h2>
-                                    <form onSubmit={handlePaymentSubmit}>
-                                        <div className="form-group">
-                                            <label>Payment Method:</label>
-                                            <select
-                                                value={paymentDetails.method}
-                                                onChange={(e) => setPaymentDetails({
-                                                    ...paymentDetails,
-                                                    method: e.target.value
-                                                })}
-                                                required
+                        
+                        <div className="payment-history-right">
+                            <h3>Payment History</h3>
+                            <div className="transaction-list">
+                                {transactions.map(txn => (
+                                    <div key={txn.id} className="transaction-item">
+                                        <span>{new Date(txn.date).toLocaleDateString()}</span>
+                                        <span>{txn.method}</span>
+                                        <span>₹{txn.amount}</span>
+                                        {txn.notes && <span>Notes: {txn.notes}</span>} {/* Display notes if available */}
+                                        <div className="transaction-actions">
+                                            <button
+                                                className="edit-btn small"
+                                                onClick={() => handleEditTransaction(txn)}
                                             >
-                                                <option value="">Select Method</option>
-                                                <option value="Cash">Cash</option>
-                                                <option value="UPI">UPI</option>
-                                                <option value="Bank Transfer">Bank Transfer</option>
-                                                <option value="Cheque">Cheque</option>
-                                            </select>
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Amount:</label>
-                                            <input
-                                                type="number"
-                                                value={paymentDetails.amount}
-                                                onChange={(e) => setPaymentDetails({
-                                                    ...paymentDetails,
-                                                    amount: e.target.value
-                                                })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Date:</label>
-                                            <input
-                                                type="date"
-                                                value={paymentDetails.date}
-                                                onChange={(e) => setPaymentDetails({
-                                                    ...paymentDetails,
-                                                    date: e.target.value
-                                                })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Notes:</label>
-                                            <textarea
-                                                value={paymentDetails.notes}
-                                                onChange={(e) => setPaymentDetails({
-                                                    ...paymentDetails,
-                                                    notes: e.target.value
-                                                })}
-                                                placeholder="Add payment notes (optional)"
-                                                rows="3"
-                                                className="payment-notes"
-                                            />
-                                        </div>
-                                        <div className="modal-actions">
-                                            <button type="button" onClick={() => setIsPaymentModalOpen(false)}>
-                                                Cancel
+                                                Edit
                                             </button>
-                                            <button type="submit">
-                                                {editingTransaction ? 'Update Payment' : 'Add Payment'}
+                                            <button
+                                                className="delete-btn small"
+                                                onClick={() => handleDeleteTransaction(txn.id)}
+                                            >
+                                                Delete
                                             </button>
                                         </div>
-                                    </form>
-                                </div>
+                                    </div>
+                                ))}
                             </div>
-                        )}
-
-                        {orderStatus === 'Accepted' && (startCredit === true || startProduction === true || calculateTotalPaid() >= requiredAmount) && <div className="production-section">
-                            <h2>Production Status</h2>
-                            <div className="status-options">
-                                <label className="status-option">
-                                    <input
-                                        type="radio"
-                                        name="production_status"
-                                        value="Under Process"
-                                        checked={productionStatus === 'Under Process'}
-                                        onChange={(e) => handleStatusChange(e.target.value)}
-                                    />
-                                    Under Process
-                                </label>
-                                <label className="status-option">
-                                    <input
-                                        type="radio"
-                                        name="production_status"
-                                        value="Ready to Dispatch"
-                                        checked={productionStatus === 'Ready to Dispatch'}
-                                        onChange={(e) => handleStatusChange(e.target.value)}
-                                    />
-                                    Ready to Dispatch
-                                </label>
-                                {(calculateTotalPaid() >= calculateSubTotal() || startCredit === true) && <label className="status-option">
-                                    <input
-                                        type="radio"
-                                        name="production_status"
-                                        value="Dispatched"
-                                        checked={productionStatus === 'Dispatched'}
-                                        onChange={(e) => handleStatusChange(e.target.value)}
-                                    />
-                                    Dispatched
-                                </label>}
-                            </div>
-                            {productionStatus === 'Dispatched' && (
-                                <div className="address-input-container">
-                                    <label>Dispatch Details</label>
-                                    <input
-                                        type="text"
-                                        className="enhanced-address-input"
-                                        value={dispatchDetails}
-                                        onChange={(e) => setDispatchDetails(e.target.value)}
-                                        placeholder="Enter Dispatch Details"
-                                    />
-                                </div>
-                            )}
-                        </div>}
-
-                        <div className="place-order-container">
-                            <button
-                                className="place-order-btn confirm-order"
-                                onClick={handleUpdateOrder}
-                            >
-                                Update Order
-                            </button>
                         </div>
-                    </>
+                    </div>
+                </div>
+
+                {isPaymentModalOpen && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <h2>{editingTransaction ? 'Edit Payment' : 'Add Payment'}</h2>
+                            <form onSubmit={handlePaymentSubmit}>
+                                <div className="form-group">
+                                    <label>Payment Method:</label>
+                                    <select
+                                        value={paymentDetails.method}
+                                        onChange={(e) => setPaymentDetails({
+                                            ...paymentDetails,
+                                            method: e.target.value
+                                        })}
+                                        required
+                                    >
+                                        <option value="">Select Method</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="UPI">UPI</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="Cheque">Cheque</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Amount:</label>
+                                    <input
+                                        type="number"
+                                        value={paymentDetails.amount}
+                                        onChange={(e) => setPaymentDetails({
+                                            ...paymentDetails,
+                                            amount: e.target.value
+                                        })}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Date:</label>
+                                    <input
+                                        type="date"
+                                        value={paymentDetails.date}
+                                        onChange={(e) => setPaymentDetails({
+                                            ...paymentDetails,
+                                            date: e.target.value
+                                        })}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Notes:</label>
+                                    <textarea
+                                        value={paymentDetails.notes}
+                                        onChange={(e) => setPaymentDetails({
+                                            ...paymentDetails,
+                                            notes: e.target.value
+                                        })}
+                                        placeholder="Add payment notes (optional)"
+                                        rows="3"
+                                        className="payment-notes"
+                                    />
+                                </div>
+                                <div className="modal-actions">
+                                    <button type="button" onClick={() => setIsPaymentModalOpen(false)}>
+                                        Cancel
+                                    </button>
+                                    <button type="submit">
+                                        {editingTransaction ? 'Update Payment' : 'Add Payment'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 )}
 
+                {orderStatus === 'Accepted' && (startCredit === true || startProduction === true || calculateTotalPaid() >= requiredAmount) && <div className="production-section">
+                    <h2>Production Status</h2>
+                    <div className="status-options">
+                    <label className="status-option">
+                            <input
+                                type="radio"
+                                name="production_status"
+                                value="Not Started"
+                                checked={productionStatus === 'Not Started'}
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                            />
+                            Not Started
+                        </label>
+                        <label className="status-option">
+                            <input
+                                type="radio"
+                                name="production_status"
+                                value="Under Process"
+                                checked={productionStatus === 'Under Process'}
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                            />
+                            Under Process
+                        </label>
+                        <label className="status-option">
+                            <input
+                                type="radio"
+                                name="production_status"
+                                value="Ready to Dispatch"
+                                checked={productionStatus === 'Ready to Dispatch'}
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                            />
+                            Ready to Dispatch
+                        </label>
+                        {(calculateTotalPaid() >= calculateSubTotal() || startCredit === true) && <label className="status-option">
+                            <input
+                                type="radio"
+                                name="production_status"
+                                value="Dispatched"
+                                checked={productionStatus === 'Dispatched'}
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                            />
+                            Dispatched
+                        </label>}
+                    </div>
+                    {productionStatus === 'Dispatched' && (
+                        <div className="address-input-container">
+                            <label>Dispatch Details</label>
+                            <input
+                                type="text"
+                                className="enhanced-address-input"
+                                value={dispatchDetails}
+                                onChange={(e) => setDispatchDetails(e.target.value)}
+                                placeholder="Enter Dispatch Details"
+                            />
+                        </div>
+                    )}
+                </div>}
+
+                <div className="place-order-container">
+                    <button
+                        className="place-order-btn confirm-order"
+                        onClick={handleUpdateOrder}
+                    >
+                        Update Order
+                    </button>
+                </div>
             </div>
             <ItemModal
                 isOpen={isModalOpen}

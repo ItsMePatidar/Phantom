@@ -42,6 +42,7 @@ export function OrderProvider({ children }) {
     }, []);
 
     const isAdmin = (dealer) => {
+        console.log('role is - ', dealer?.role);
         return dealer?.role === 'admin';
     };
 

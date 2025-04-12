@@ -122,7 +122,7 @@ function Home() {
                 <thead>
                     <tr>
                         <th>Order ID</th>     
-                        {currentDealer.name === dealers[0]?.name && <th>Dealer</th>}                   
+                        {isAdmin === true && <th>Dealer</th>}                   
                         <th>Date</th>
                         <th>Price</th>
                         <th>Payment Status</th>
@@ -138,7 +138,7 @@ function Home() {
                             className="order-row"
                         >
                             <td>{order.id}</td>
-                            {currentDealer.name === dealers[0]?.name && (
+                            {isAdmin === true && (
                                 <td>{order.dealer_name || 'N/A'}</td>
                             )}
                             <td>{formatDateTime(order.created_at)}</td>
