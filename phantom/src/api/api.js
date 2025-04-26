@@ -146,8 +146,12 @@ export async function deleteOrder(orderId) {
 // Get orders by dealer
 export async function getOrdersByDealer(dealerId) {
     try {
-        const result = await db.query(
-            'SELECT * FROM phantom_orders WHERE dealer_id = $1 ORDER BY created_at DESC',
+        const result = await db.query(`
+            SELECT o.*, d.pricing as dealer_pricing 
+            FROM phantom_orders o
+            JOIN phantom_dealers d ON o.dealer_id = d.id
+            WHERE o.dealer_id = $1 
+            ORDER BY o.created_at DESC`,
             [dealerId]
         );
         console.log('Dealer orders result:', result);
@@ -175,7 +179,7 @@ export async function updateOrderStatus(orderId, status) {
 export async function getDealers() {
     try {
         const result = await db.query(`
-            SELECT id, name, address, phone, email, role, gst_no 
+            SELECT id, name, address, phone, email, role, gst_no, pricing 
             FROM phantom_dealers 
             ORDER BY CASE WHEN role = 'admin' THEN 0 ELSE 1 END, name ASC
         `);
@@ -190,7 +194,7 @@ export async function getDealers() {
 export async function searchDealer(dealerName, password) {
     console.log('Searching for dealer:', dealerName, password);
     console.log('query - ', `
-            SELECT id, name, address, phone, email, role 
+            SELECT id, name, address, phone, email, role, pricing
             FROM phantom_dealers 
             WHERE LOWER(name) LIKE LOWER($1) AND password = $2
             LIMIT 1
@@ -199,7 +203,7 @@ export async function searchDealer(dealerName, password) {
     
     try {
         const result = await db.query(`
-            SELECT id, name, address, phone, email, role 
+            SELECT id, name, address, phone, email, role, pricing
             FROM phantom_dealers 
             WHERE LOWER(name) LIKE LOWER($1) AND password = $2
             LIMIT 1
@@ -254,7 +258,8 @@ export async function updateDealerById(dealerId, dealerData) {
             email = $3,
             address = $4,
             role = $5,
-            gst_no = $6`;
+            gst_no = $6,
+            pricing = $7::jsonb`;
 
     let values = [
         dealerData.name,
@@ -262,7 +267,8 @@ export async function updateDealerById(dealerId, dealerData) {
         dealerData.email,
         dealerData.address,
         dealerData.role,
-        dealerData.gst_no
+        dealerData.gst_no,
+        JSON.stringify(dealerData.pricing || {})
     ];
 
     // Add password to update only if provided
@@ -272,7 +278,7 @@ export async function updateDealerById(dealerId, dealerData) {
     }
 
     query += ` WHERE id = $${values.length + 1} 
-        RETURNING id, name, phone, email, address, role, gst_no`;
+        RETURNING id, name, phone, email, address, role, gst_no, pricing`;
     values.push(dealerId);
 
     try {

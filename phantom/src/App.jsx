@@ -15,6 +15,7 @@ import DealerDashboard from './Pages/DealerDashboard';
 import AdminLedger from './Pages/AdminLedger';
 import DealerLedger from './Pages/DealerLedger';
 import ManageDealers from './Pages/ManageDealers';
+import ManagePrices from './Pages/ManagePrices';
 
 function ProtectedRoute({ children }) {
   const { currentDealer } = useOrders();
@@ -109,6 +110,11 @@ function App() {
                     <Route path="/admin-ledger" element={<AdminLedger />} />
                     <Route path="/dealer-ledger" element={<DealerLedger />} />
                     <Route path="/manage-dealers" element={<ManageDealers />} />
+                    <Route path="/manage-prices" element={
+                      <AdminRouteHandler>
+                        <ManagePrices />
+                      </AdminRouteHandler>
+                    } />
                   </Routes>
                 </div>
               </>

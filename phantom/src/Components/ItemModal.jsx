@@ -158,10 +158,20 @@ function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isE
             calculatedDimension = (Math.max(itemSpec.min_fabric_value, selectedItem.Width/100)) * (Math.max(itemSpec.min_fabric_value, selectedItem.Length/100)) * selectedItem.Quantity;
         }
 
+        // Find the specification ID for the selected type
+        const specId = specifications.find(spec => spec.type_name === selectedItem.type)?.id;
+        const dealerPrice = currentDealer?.pricing?.[specId];
+
+        // Check if price is configured
+        if (!dealerPrice && !isAdmin(currentDealer)) {
+            alert('Price not configured for this product. Please contact admin to set up pricing.');
+            return;
+        }
+
         onSave({
             ...selectedItem,
             id: selectedItem.id || Date.now(),
-            Price: 200,
+            Price: isAdmin(currentDealer) ? (selectedItem.Price || dealerPrice) : dealerPrice,
             tax: itemSpec.tax || 0,
             calculatedDimension
         });
@@ -203,6 +213,19 @@ function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isE
                                 onChange={handleChange}
                                 required
                                 min="1"
+                            />
+                        </div>
+                    )}
+                    {isAdmin(currentDealer) && (
+                        <div className="form-group">
+                            <label>Price per Unit:</label>
+                            <input 
+                                type="number" 
+                                name="Price" 
+                                value={selectedItem.Price || ''} 
+                                onChange={handleChange}
+                                placeholder="Enter price per unit"
+                                min="0"
                             />
                         </div>
                     )}

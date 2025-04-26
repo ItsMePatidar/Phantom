@@ -58,6 +58,13 @@ export function OrderProvider({ children }) {
         }
     };
 
+    // Add getDealerPrice helper function
+    const getDealerPrice = (dealerId, specificationId) => {
+        const dealer = dealers.find(d => d.id === dealerId);
+        return dealer?.pricing?.[specificationId] || 400; // Default price if not set
+    };
+
+    // Modify fetchOrders to include dealer pricing
     const fetchOrders = async () => {
         if (!currentDealer) return;
 
@@ -71,6 +78,16 @@ export function OrderProvider({ children }) {
                 ordersData = await getOrders();
             } else {
                 ordersData = await getOrdersByDealer(currentDealer.id);
+                // Update items with dealer-specific pricing
+                if (ordersData) {
+                    ordersData = ordersData.map(order => ({
+                        ...order,
+                        items: order.items.map(item => ({
+                            ...item,
+                            Price: currentDealer.pricing?.[specifications.find(s => s.type_name === item.type)?.id] || item.Price
+                        }))
+                    }));
+                }
             }
 
             console.log('Received orders data:', ordersData);
@@ -89,8 +106,17 @@ export function OrderProvider({ children }) {
         }
     };
 
+    // Update addOrder to handle dealer pricing
     const addOrder = async (orderData) => {
         try {
+            // Update item prices with dealer-specific pricing if not admin
+            if (!isAdmin(currentDealer)) {
+                orderData.items = orderData.items.map(item => ({
+                    ...item,
+                    Price: currentDealer.pricing?.[specifications.find(s => s.type_name === item.type)?.id] || item.Price
+                }));
+            }
+
             const newOrder = await createOrder(orderData);
             setOrders(prev => [newOrder, ...prev]);
             return newOrder;
@@ -100,9 +126,19 @@ export function OrderProvider({ children }) {
         }
     };
 
+    // Update updateOrderById to handle dealer pricing
     const updateOrderById = async (orderId, updateData) => {
         try {
             setLoading(true);
+            
+            // Update item prices with dealer-specific pricing if not admin
+            if (!isAdmin(currentDealer)) {
+                updateData.items = updateData.items.map(item => ({
+                    ...item,
+                    Price: currentDealer.pricing?.[specifications.find(s => s.type_name === item.type)?.id] || item.Price
+                }));
+            }
+
             const updatedOrder = await updateOrder(orderId, updateData);
             setOrders(prev => prev.map(order => 
                 order.id === orderId ? updatedOrder : order
@@ -283,7 +319,8 @@ export function OrderProvider({ children }) {
             deleteSpecificationById,
             addDealer,
             updateDealer,
-            deleteDealer
+            deleteDealer,
+            getDealerPrice // Add the new helper function
         }}>
             {children}
         </OrderContext.Provider>

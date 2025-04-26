@@ -203,6 +203,12 @@ function AdminDashboard() {
                 >
                     Manage Dealers
                 </button>
+                <button
+                    className="manage-specs-btn"
+                    onClick={() => navigate('/manage-prices')}
+                >
+                    Manage Product Prices
+                </button>
             </div>
 
             {isSpecModalOpen && (
