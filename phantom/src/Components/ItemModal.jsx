@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useOrders } from '../context/OrderContext';
 
 function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isEditing }) {
-    const { specifications, fetchSpecifications } = useOrders();
+    const { specifications, fetchSpecifications, isAdmin, currentDealer } = useOrders();
 
     useEffect(() => {
         fetchSpecifications();
@@ -19,7 +19,8 @@ function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isE
             profiles: spec.profiles,
             min_fabric: spec.min_fabric,
             min_fabric_value: spec.min_fabric_value,
-            tax: spec.tax
+            tax: spec.tax,
+            product_type: spec.product_type
         };
         return acc;
     }, {});
@@ -67,6 +68,85 @@ function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isE
         );
     };
 
+    // Update renderProductTypeFields function
+    const renderProductTypeFields = () => {
+        if (!selectedItem.type) return null;
+        
+        const itemSpec = specificationsMap[selectedItem.type];
+        if (!itemSpec) return null;
+
+        switch (itemSpec.product_type) {
+            case 'SQM':
+                return (
+                    <>
+                        <div className="form-group">
+                            <label>Profile:</label>
+                            <select name="Profile" value={selectedItem.Profile} onChange={handleChange} required>
+                                <option value="">Select Profile</option>
+                                {(itemSpec.profiles || []).map(profile => (
+                                    <option key={profile} value={profile}>{profile}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label>Length (cm):</label>
+                            <input 
+                                type="number" 
+                                name="Length" 
+                                value={selectedItem.Length} 
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Width (cm):</label>
+                            <input 
+                                type="number" 
+                                name="Width" 
+                                value={selectedItem.Width} 
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                    </>
+                );
+            case 'PCS':
+                return (
+                    <>
+                        <div className="form-group">
+                            <label>Quantity:</label>
+                            <input 
+                                type="number" 
+                                name="Quantity" 
+                                value={selectedItem.Quantity} 
+                                onChange={handleChange}
+                                required
+                                min="1"
+                            />
+                        </div>
+                    </>
+                );
+            case 'UNT':
+                return (
+                    <>
+                        <div className="form-group">
+                            <label>Amount:</label>
+                            <input 
+                                type="number" 
+                                name="Amount" 
+                                value={selectedItem.Amount} 
+                                onChange={handleChange}
+                                required
+                                min="0"
+                            />
+                        </div>
+                    </>
+                );
+            default:
+                return null;
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         const itemSpec = specificationsMap[selectedItem.type];
@@ -112,46 +192,31 @@ function ItemModal({ isOpen, onClose, onSave, selectedItem, setSelectedItem, isE
                         </select>
                     </div>
                     {renderFabricInputs()}
-                    <div className="form-group">
-                        <label>Profile:</label>
-                        <select name="Profile" value={selectedItem.Profile} onChange={handleChange} required>
-                            <option value="">Select Profile</option>
-                            {(specificationsMap[selectedItem.type]?.profiles || []).map(profile => (
-                                <option key={profile} value={profile}>{profile}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label>Length (cm):</label>
+                    {renderProductTypeFields()}
+                    {selectedItem.type && specificationsMap[selectedItem.type]?.product_type !== 'PCS' && (
+                        <div className="form-group">
+                            <label>Quantity:</label>
+                            <input 
+                                type="number" 
+                                name="Quantity" 
+                                value={selectedItem.Quantity} 
+                                onChange={handleChange}
+                                required
+                                min="1"
+                            />
+                        </div>
+                    )}
+                    {isAdmin(currentDealer) && <div className="form-group">
+                        <label>Discount:</label>
                         <input 
                             type="number" 
-                            name="Length" 
-                            value={selectedItem.Length} 
+                            name="Discount" 
+                            value={selectedItem.Discount} 
                             onChange={handleChange}
                             required
+                            min="0"
                         />
-                    </div>
-                    <div className="form-group">
-                        <label>Width (cm):</label>
-                        <input 
-                            type="number" 
-                            name="Width" 
-                            value={selectedItem.Width} 
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Quantity:</label>
-                        <input 
-                            type="number" 
-                            name="Quantity" 
-                            value={selectedItem.Quantity} 
-                            onChange={handleChange}
-                            required
-                            min="1"
-                        />
-                    </div>
+                    </div>}
                     <div className="modal-actions">
                         <button type="button" onClick={onClose}>Cancel</button>
                         <button type="submit">Save</button>

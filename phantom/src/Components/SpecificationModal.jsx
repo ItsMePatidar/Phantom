@@ -4,6 +4,7 @@ import '../Styles/SpecificationModal.css'; // Assuming you have a CSS file for s
 function SpecificationModal({ isOpen, onClose, specification, onSave }) {
     const [formData, setFormData] = useState({
         type_name: '',
+        product_type: 'SQM',  // Add default product_type
         fabric_selection: 'dropdown',
         fabric_count: 1,
         fabric_options: [],
@@ -96,6 +97,20 @@ function SpecificationModal({ isOpen, onClose, specification, onSave }) {
                     </div>
 
                     <div className="form-group">
+                        <label>Product Type:</label>
+                        <select
+                            name="product_type"
+                            value={formData.product_type}
+                            onChange={handleChange}
+                            required
+                        >
+                            <option value="SQM">Square Meter</option>
+                            <option value="PCS">Pieces</option>
+                            <option value="UNT">Units</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
                         <label>Fabric Selection Type:</label>
                         <select
                             name="fabric_selection"
@@ -115,7 +130,7 @@ function SpecificationModal({ isOpen, onClose, specification, onSave }) {
                             name="fabric_count"
                             value={formData.fabric_count}
                             onChange={handleChange}
-                            min="1"
+                            // min="1"
                             required
                         />
                     </div>

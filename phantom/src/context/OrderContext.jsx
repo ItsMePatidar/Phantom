@@ -160,8 +160,9 @@ export function OrderProvider({ children }) {
             // Ensure all required fields are present
             const validatedData = {
                 type_name: specData.type_name,
+                product_type: specData.product_type || 'SQM', // Add default product_type
                 fabric_selection: specData.fabric_selection || 'dropdown',
-                fabric_count: parseInt(specData.fabric_count) || 1,
+                fabric_count: parseInt(specData.fabric_count) || 0,
                 fabric_options: Array.isArray(specData.fabric_options) ? specData.fabric_options : [],
                 profiles: Array.isArray(specData.profiles) ? specData.profiles : [],
                 min_fabric: specData.min_fabric || 'area',
@@ -193,8 +194,9 @@ export function OrderProvider({ children }) {
             // Ensure all required fields are present
             const validatedData = {
                 type_name: specData.type_name,
+                product_type: specData.product_type || 'SQM', // Add default product_type
                 fabric_selection: specData.fabric_selection || 'dropdown',
-                fabric_count: parseInt(specData.fabric_count) || 1,
+                fabric_count: parseInt(specData.fabric_count) || 0,
                 fabric_options: Array.isArray(specData.fabric_options) ? specData.fabric_options : [],
                 profiles: Array.isArray(specData.profiles) ? specData.profiles : [],
                 min_fabric: specData.min_fabric || 'area',

@@ -107,7 +107,7 @@ function PlaceOrder() {
 
     const calculateSubTotal = () => {
         return placeOrderList.reduce((total, order) => {
-            return total + (order.Price * order.calculatedDimension);
+            return total + (order.Price * (order.calculatedDimension || 1));
         }, 0);
     };
 
@@ -115,7 +115,7 @@ function PlaceOrder() {
         const gstRates = {};
         placeOrderList.forEach(order => {
             if (order.tax) {
-                const amount = order.Price * order.calculatedDimension;
+                const amount = order.Price * (order.calculatedDimension || 1);
                 gstRates[order.tax] = (gstRates[order.tax] || 0) + (amount * order.tax / 100);
             }
         });
@@ -305,11 +305,19 @@ function PlaceOrder() {
                             <td>{order.type}</td>
                             <td>{order.Fabric1} {order.Fabric2 ? `- ${order.Fabric2}` : ''}</td>
                             <td>{order.Profile}</td>
-                            <td>W {order.Width}cm / L {order.Length}cm</td>
+                            <td>
+                                {(order.Width && order.Length) ? 
+                                    `W ${order.Width}cm / L ${order.Length}cm` : 
+                                    ''}
+                            </td>
                             <td style = {{textAlign:'center'}}>{order.Quantity}</td>
-                            <td style={{textAlign:'center'}}>{order.calculatedDimension.toFixed(2)} Sq. mtr.</td>
+                            <td style={{textAlign:'center'}}>
+                                {order.calculatedDimension && order.calculatedDimension !== 0 
+                                    ? `${order.calculatedDimension.toFixed(2)} Sq. mtr.` 
+                                    : ''}
+                            </td>
                             <td style = {{textAlign:'right'}}>₹{order.Price}</td>
-                            <td style = {{textAlign:'right'}}>₹{(order.Price * order.calculatedDimension).toFixed(2)}</td>
+                            <td style = {{textAlign:'right'}}>₹{(order.Price * (order.calculatedDimension || 1)).toFixed(2)}</td>
                             <td>
                                 <div className="action-buttons">
                                     <button 

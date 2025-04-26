@@ -48,17 +48,19 @@ function AdminOrder() {
             setPlaceOrderList(originalOrder.items);
             setDeliveryType(originalOrder.shipping_address?.type || 'self');
             setAddress(originalOrder.shipping_address?.address || dealer?.address || '');
-            setRequiredAmount(originalOrder.payment_details.requiredAmount || String(originalOrder.total));
-            setTransactions(originalOrder.payment_details.payments || []);
+            // Update this line to correctly get the required amount from payment_details
+            setRequiredAmount(originalOrder.payment_details?.requiredAmount?.toString() || String(originalOrder.total_amount));
+            setTransactions(originalOrder.payment_details?.payments || []);
             setIsCashPayment(originalOrder.is_cash_payment || false);
         } else if (dealer?.address) {
             setAddress(dealer.address);
         }
     }, [originalOrder, dealer]);
 
-    useEffect(() => {
-            setRequiredAmount(String(calculateTotal()));
-    }, [placeOrderList, isCashPayment]);
+    // Comment out or remove this useEffect as it's overriding the required amount from database
+    // useEffect(() => {
+    //     setRequiredAmount(String(calculateTotal()));
+    // }, [placeOrderList, isCashPayment]);
 
     const handleAddItem = () => {
         setIsModalOpen(true);
@@ -401,6 +403,7 @@ function AdminOrder() {
                             <th style={{ textAlign: 'center' }}>Calculated Size</th>
                             <th style={{ textAlign: 'right' }}>Price</th>
                             <th style={{ textAlign: 'right' }}>Amount</th>
+                            {/* <th style={{ textAlign: 'right' }}>Discount</th> */}
                             <th>Actions</th>
                         </tr>
                     </thead>)}
@@ -415,6 +418,7 @@ function AdminOrder() {
                                 <td style={{ textAlign: 'center' }}>{order.calculatedDimension.toFixed(2)} Sq. mtr.</td>
                                 <td style={{ textAlign: 'right' }}>₹{order.Price}</td>
                                 <td style={{ textAlign: 'right' }}>₹{(order.Price * order.calculatedDimension).toFixed(2)}</td>
+                                {/* <th style={{ textAlign: 'right' }}>₹{order.Discount}</th> */}
                                 <td>
                                     <div className="action-buttons">
                                         <button

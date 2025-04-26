@@ -34,6 +34,7 @@ function Specifications() {
                     <thead>
                         <tr>
                             <th>Type Name</th>
+                            <th>Product Type</th>
                             <th>Fabric Selection</th>
                             <th>Fabric Count</th>
                             <th>Min Fabric</th>
@@ -45,6 +46,7 @@ function Specifications() {
                         {specifications.map(spec => (
                             <tr key={spec.id}>
                                 <td>{spec.type_name}</td>
+                                <td>{spec.product_type}</td>
                                 <td>{spec.fabric_selection}</td>
                                 <td>{spec.fabric_count}</td>
                                 <td>{spec.min_fabric} ({spec.min_fabric_value})</td>

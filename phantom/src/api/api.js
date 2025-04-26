@@ -305,22 +305,20 @@ export async function getSpecifications() {
 }
 
 export async function createSpecification(specData) {
-    console.log('Creating specification with data:', specData);
-    
     const query = `
         INSERT INTO phantom_specifications (
-            type_name, fabric_selection, fabric_count, 
+            type_name, product_type, fabric_selection, fabric_count, 
             fabric_options, profiles, min_fabric, 
             min_fabric_value, tax
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *`;
 
     const values = [
         specData.type_name,
+        specData.product_type,
         specData.fabric_selection,
         specData.fabric_count,
-
-        JSON.stringify(specData.fabric_options || []), // Convert arrays to JSON strings
+        JSON.stringify(specData.fabric_options || []),
         JSON.stringify(specData.profiles || []),
         specData.min_fabric,
         specData.min_fabric_value,
@@ -328,12 +326,8 @@ export async function createSpecification(specData) {
     ];
 
     try {
-        console.log('Executing query with values:', values);
-        console.log(query, values);
-        
         const result = await db.query(query, values);
-        console.log('Creation result:', result);
-        return result[0]; // Return the first row of the result
+        return result[0];
     } catch (error) {
         console.error('Error creating specification:', error);
         throw error;
@@ -344,32 +338,22 @@ export async function updateSpecification(id, specData) {
     const query = `
         UPDATE phantom_specifications SET
             type_name = $1,
-            fabric_selection = $2,
-            fabric_count = $3,
-            fabric_options = $4::jsonb,
-            profiles = $5::jsonb,
-            min_fabric = $6,
-            min_fabric_value = $7,
-            tax = $8,
+            product_type = $2,
+            fabric_selection = $3,
+            fabric_count = $4,
+            fabric_options = $5::jsonb,
+            profiles = $6::jsonb,
+            min_fabric = $7,
+            min_fabric_value = $8,
+            tax = $9,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $9
+        WHERE id = $10
         RETURNING *`;
 
-    console.log(query, [
-        specData.type_name,
-        specData.fabric_selection,
-        specData.fabric_count,
-        JSON.stringify(specData.fabric_options),
-        JSON.stringify(specData.profiles),
-        specData.min_fabric,
-        specData.min_fabric_value,
-        specData.tax,
-        id
-    ]);
-    
     try {
         const result = await db.query(query, [
             specData.type_name,
+            specData.product_type,
             specData.fabric_selection,
             specData.fabric_count,
             JSON.stringify(specData.fabric_options),
